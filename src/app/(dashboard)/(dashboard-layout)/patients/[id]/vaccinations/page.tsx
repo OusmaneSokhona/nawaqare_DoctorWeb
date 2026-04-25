@@ -27,7 +27,6 @@ interface UpcomingVaccine {
 }
 
 const VaccinationCardPage = () => {
-  const params = { id: "1" };
   const [expandedVaccineId, setExpandedVaccineId] = useState<string | null>(
     null
   );

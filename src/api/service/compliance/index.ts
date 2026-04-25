@@ -8,7 +8,7 @@ const API_VERSION = "v1";
 export const getComplianceStatus = async (doctorId: string): Promise<ComplianceStatus> => {
   try {
     const response = await axiosClient.get(
-      `${API_BASE}/api/${API_VERSION}/doctors/${doctorId}/compliance`,
+      `/api/v1/doctors/${doctorId}/compliance`,
     );
     return response.data;
   } catch (error) {
@@ -30,7 +30,7 @@ export const uploadComplianceDocument = async (
     }
 
     const response = await axiosClient.post(
-      `${API_BASE}/api/${API_VERSION}/compliance/documents`,
+      `/api/v1/compliance/documents`,
       formData,
       {
         headers: {
@@ -49,7 +49,7 @@ export const uploadComplianceDocument = async (
 export const getComplianceItems = async (doctorId: string): Promise<ComplianceItem[]> => {
   try {
     const response = await axiosClient.get(
-      `${API_BASE}/api/${API_VERSION}/doctors/${doctorId}/compliance/items`,
+      `/api/v1/doctors/${doctorId}/compliance/items`,
     );
     return response.data;
   } catch (error) {

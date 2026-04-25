@@ -40,7 +40,7 @@ const ICD10_CODES: ICD10Result[] = [
 export const getSoapNotes = async (consultationId: string): Promise<SOAPNotes> => {
   try {
     const response = await axiosClient.get(
-      `${API_BASE}/api/${API_VERSION}/consultations/${consultationId}/soap-notes`,
+      `/api/v1/consultations/${consultationId}/soap-notes`,
     );
     return response.data;
   } catch (error) {
@@ -55,7 +55,7 @@ export const saveSoapNotes = async (
 ): Promise<SOAPNotes> => {
   try {
     const response = await axiosClient.post(
-      `${API_BASE}/api/${API_VERSION}/consultations/${consultationId}/soap-notes`,
+      `/api/v1/consultations/${consultationId}/soap-notes`,
       data,
     );
     return response.data;
@@ -79,7 +79,7 @@ export const searchICD10 = (query: string): ICD10Result[] => {
 export const getExamOrders = async (consultationId: string): Promise<ExamOrder[]> => {
   try {
     const response = await axiosClient.get(
-      `${API_BASE}/api/${API_VERSION}/consultations/${consultationId}/exam-orders`,
+      `/api/v1/consultations/${consultationId}/exam-orders`,
     );
     return response.data;
   } catch (error) {
@@ -94,7 +94,7 @@ export const createExamOrder = async (
 ): Promise<ExamOrder> => {
   try {
     const response = await axiosClient.post(
-      `${API_BASE}/api/${API_VERSION}/consultations/${consultationId}/exam-orders`,
+      `/api/v1/consultations/${consultationId}/exam-orders`,
       data,
     );
     return response.data;
@@ -110,7 +110,7 @@ export const updateExamOrderStatus = async (
 ): Promise<ExamOrder> => {
   try {
     const response = await axiosClient.patch(
-      `${API_BASE}/api/${API_VERSION}/exam-orders/${orderId}`,
+      `/api/v1/exam-orders/${orderId}`,
       { status },
     );
     return response.data;
@@ -127,7 +127,7 @@ export const createReferenceLetter = async (
 ): Promise<ReferenceLetterResult> => {
   try {
     const response = await axiosClient.post(
-      `${API_BASE}/api/${API_VERSION}/consultations/${consultationId}/reference-letters`,
+      `/api/v1/consultations/${consultationId}/reference-letters`,
       data,
     );
     return response.data;
@@ -142,7 +142,7 @@ export const getReferenceLetters = async (
 ): Promise<ReferenceLetterResult[]> => {
   try {
     const response = await axiosClient.get(
-      `${API_BASE}/api/${API_VERSION}/consultations/${consultationId}/reference-letters`,
+      `/api/v1/consultations/${consultationId}/reference-letters`,
     );
     return response.data;
   } catch (error) {
@@ -158,7 +158,7 @@ export const createCertificate = async (
 ): Promise<CertificateResult> => {
   try {
     const response = await axiosClient.post(
-      `${API_BASE}/api/${API_VERSION}/consultations/${consultationId}/certificates`,
+      `/api/v1/consultations/${consultationId}/certificates`,
       data,
     );
     return response.data;
@@ -173,7 +173,7 @@ export const getCertificates = async (
 ): Promise<CertificateResult[]> => {
   try {
     const response = await axiosClient.get(
-      `${API_BASE}/api/${API_VERSION}/consultations/${consultationId}/certificates`,
+      `/api/v1/consultations/${consultationId}/certificates`,
     );
     return response.data;
   } catch (error) {

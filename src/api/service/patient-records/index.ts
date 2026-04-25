@@ -14,7 +14,7 @@ const API_VERSION = "v1";
 export const getPatientRecords = async (patientId: string): Promise<PatientRecord> => {
   try {
     const response = await axiosClient.get(
-      `${API_BASE}/api/${API_VERSION}/patients/${patientId}/records`,
+      `/api/v1/patients/${patientId}/records`,
     );
     return response.data;
   } catch (error) {
@@ -37,8 +37,8 @@ export const getPatientTimeline = async (
     const queryString = params.toString();
     const url =
       queryString.length > 0
-        ? `${API_BASE}/api/${API_VERSION}/patients/${patientId}/records/timeline?${queryString}`
-        : `${API_BASE}/api/${API_VERSION}/patients/${patientId}/records/timeline`;
+        ? `/api/v1/patients/${patientId}/records/timeline?${queryString}`
+        : `/api/v1/patients/${patientId}/records/timeline`;
 
     const response = await axiosClient.get(url);
     return response.data;
@@ -52,7 +52,7 @@ export const getPatientTimeline = async (
 export const getPatientVaccinations = async (patientId: string): Promise<Vaccination[]> => {
   try {
     const response = await axiosClient.get(
-      `${API_BASE}/api/${API_VERSION}/patients/${patientId}/records/vaccinations`,
+      `/api/v1/patients/${patientId}/records/vaccinations`,
     );
     return response.data;
   } catch (error) {
@@ -65,7 +65,7 @@ export const getPatientVaccinations = async (patientId: string): Promise<Vaccina
 export const getPatientOverview = async (patientId: string): Promise<PatientOverview> => {
   try {
     const response = await axiosClient.get(
-      `${API_BASE}/api/${API_VERSION}/patients/${patientId}/records/overview`,
+      `/api/v1/patients/${patientId}/records/overview`,
     );
     return response.data;
   } catch (error) {

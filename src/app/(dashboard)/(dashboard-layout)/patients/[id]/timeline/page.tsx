@@ -20,7 +20,6 @@ interface TimelineEvent {
 }
 
 const HealthTimelinePage = () => {
-  const params = { id: "1" };
   const [activeFilter, setActiveFilter] = useState<"all" | EventType>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState("last3months");

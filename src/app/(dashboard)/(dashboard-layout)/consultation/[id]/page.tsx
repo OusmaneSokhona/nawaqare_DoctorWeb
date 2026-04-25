@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { Typography } from "@/components/shared/typography";
 import { Button } from "@/components/shared/button";
@@ -389,6 +390,47 @@ const ConsultationDetailPage: React.FC<ConsultationDetailPageProps> = ({ params 
               )}
             </div>
           )}
+        </div>
+
+        {/* Sub-page navigation */}
+        <div className="bg-white rounded-lg p-5 shadow-sm">
+          <Typography as="h3" size="h5" className="text-black font-semibold mb-4">
+            Clinical Actions
+          </Typography>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Link href={`/consultation/${id}/examens`}
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border border-[#ebedf5] hover:border-[#2f80ed] hover:bg-blue-50 transition-all group">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-[#2f80ed]">
+                <Icon icon="material-symbols:lab-research-outline" width={20} className="text-[#2f80ed] group-hover:text-white" />
+              </div>
+              <Typography size="sm" className="font-semibold text-center text-[#2C2C2C]">Exam Orders</Typography>
+              <Typography size="sm" className="text-desc-color text-center text-xs">Lab & Imaging</Typography>
+            </Link>
+            <Link href={`/consultation/${id}/reference`}
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border border-[#ebedf5] hover:border-[#27ae60] hover:bg-green-50 transition-all group">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-[#27ae60]">
+                <Icon icon="material-symbols:forward-to-inbox-outline" width={20} className="text-[#27ae60] group-hover:text-white" />
+              </div>
+              <Typography size="sm" className="font-semibold text-center text-[#2C2C2C]">Reference</Typography>
+              <Typography size="sm" className="text-desc-color text-center text-xs">Send to Specialist</Typography>
+            </Link>
+            <Link href={`/consultation/${id}/certificat`}
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border border-[#ebedf5] hover:border-[#f2994a] hover:bg-orange-50 transition-all group">
+              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center group-hover:bg-[#f2994a]">
+                <Icon icon="material-symbols:description-outline" width={20} className="text-[#f2994a] group-hover:text-white" />
+              </div>
+              <Typography size="sm" className="font-semibold text-center text-[#2C2C2C]">Certificate</Typography>
+              <Typography size="sm" className="text-desc-color text-center text-xs">Sick Leave & Docs</Typography>
+            </Link>
+            <Link href={`/consultation/${id}/followup`}
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border border-[#ebedf5] hover:border-[#9b59b6] hover:bg-purple-50 transition-all group">
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center group-hover:bg-[#9b59b6]">
+                <Icon icon="material-symbols:event-repeat-outline" width={20} className="text-[#9b59b6] group-hover:text-white" />
+              </div>
+              <Typography size="sm" className="font-semibold text-center text-[#2C2C2C]">Follow-up</Typography>
+              <Typography size="sm" className="text-desc-color text-center text-xs">Plan & Reminders</Typography>
+            </Link>
+          </div>
         </div>
 
         <div className="flex justify-end gap-3">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Typography } from "@/components/shared/typography";
+import Link from "next/link";
 import { Icon } from "@iconify/react";
 
 interface ExamOrder {

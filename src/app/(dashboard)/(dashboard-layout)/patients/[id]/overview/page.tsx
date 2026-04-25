@@ -6,8 +6,9 @@ import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Typography } from "@/components/shared/typography";
 
-const PatientOverviewPage = () => {
-  const params = { id: "1" };
+interface PageProps { params: { id: string } }
+
+const PatientOverviewPage = ({ params }: PageProps) => {
   const [activeTab, setActiveTab] = useState("overview");
 
   // Mock patient data
