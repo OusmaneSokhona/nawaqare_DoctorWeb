@@ -117,6 +117,18 @@ export const content = {
         size: "md",
         path: "/faqs",
       },
+      {
+        icon: "fluent:people-team-24-regular",
+        text: "My Team",
+        size: "md",
+        path: "/team",
+      },
+      {
+        icon: "material-symbols:verified-outline",
+        text: "Compliance",
+        size: "md",
+        path: "/compliance",
+      },
       // {
       //   icon: "/assets/svg/consent-sidebar-icon.svg",
       //   activeIcon: "/assets/svg/consent-sidebar-activeicon.svg",
