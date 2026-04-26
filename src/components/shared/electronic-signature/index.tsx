@@ -231,18 +231,4 @@ export function useElectronicSignature() {
     title: string,
     type: "prescription" | "certificate" | "report" | "reference"
   ) => {
-    setDocumentTitle(title);
-    setDocumentType(type);
-    setIsOpen(true);
-  };
-
-  const closeSignature = () => setIsOpen(false);
-
-  return {
-    isOpen,
-    documentTitle,
-    documentType,
-    openSignature,
-    closeSignature,
-  };
-}
+    se

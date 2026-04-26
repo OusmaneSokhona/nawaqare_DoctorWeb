@@ -34,4 +34,44 @@ export class ComplianceService {
       status: 'VERIFIED',
     });
   }
+
+  async getComplianceStatus(doctorId: string) {
+    const items = await this.prisma.complianceItem.findMany({
+      where: { doctor_id: doctorId },
+    });
+
+    if (items.length === 0) {
+      return {
+        score_percentage: 0,
+        total_items: 0,
+        expiring_items: 0,
+      };
+    }
+
+    const verifiedCount = items.filter((item) => item.status === 'VERIFIED').length;
+    const scorePercentage = Math.round((verifiedCount / items.length) * 100);
+
+    const now = new Date();
+    const expiringItems = items.filter(
+      (item) => item.expires_at && item.expires_at <= new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+    ).length;
+
+    return {
+      score_percentage: scorePercentage,
+      total_items: items.length,
+      expiring_items: expiringItems,
+    };
+  }
+
+  async createComplianceDocument(doctorId: string, type: string, documentUrl: string) {
+    return this.prisma.complianceItem.create({
+      data: {
+        doctor_id: doctorId,
+        item_type: type,
+        document_url: documentUrl,
+        status: 'VERIFIED',
+        verified_at: new Date(),
+      },
+    });
+  }
 }

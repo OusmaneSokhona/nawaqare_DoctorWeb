@@ -40,4 +40,37 @@ export class ComplianceController {
     const item = await this.complianceService.uploadComplianceDocument(id, body.document_url);
     return { data: item };
   }
+
+  @Get('status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('DOCTOR')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Get compliance status for current doctor' })
+  async getComplianceStatus(@CurrentUser() user: CurrentUserDto) {
+    const status = await this.complianceService.getComplianceStatus(user.id);
+    return { data: status };
+  }
+
+  @Post('documents')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('DOCTOR')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Upload compliance document' })
+  async uploadComplianceDocument(
+    @CurrentUser() user: CurrentUserDto,
+    @Body() body: { type: string; document_url: string },
+  ) {
+    const item = await this.complianceService.createComplianceDocument(user.id, body.type, body.document_url);
+    return { data: item };
+  }
+
+  @Get('items')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('DOCTOR')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Get compliance items (alias for GET /compliance)' })
+  async getItems(@CurrentUser() user: CurrentUserDto) {
+    const items = await this.complianceService.getComplianceItems(user.id);
+    return { data: items };
+  }
 }

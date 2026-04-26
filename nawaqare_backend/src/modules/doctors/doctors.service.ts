@@ -285,4 +285,60 @@ export class DoctorsService {
       data: { is_verified: true },
     });
   }
+
+  async getDashboardStats(doctorId: string) {
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { user_id: doctorId },
+    });
+
+    if (!doctor) {
+      throw new NotFoundException('Doctor not found');
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const [todayAppointments, uniquePatients, pendingBookings, completedConsultations] = await Promise.all([
+      this.prisma.booking.count({
+        where: {
+          doctor_id: doctor.id,
+          time_slot: {
+            start_time: {
+              gte: today,
+              lt: tomorrow,
+            },
+          },
+        },
+      }),
+      this.prisma.booking
+        .findMany({
+          where: { doctor_id: doctor.id },
+          select: { patient_uuid: true },
+          distinct: ['patient_uuid'],
+        })
+        .then((bookings) => bookings.length),
+      this.prisma.booking.count({
+        where: {
+          doctor_id: doctor.id,
+          status: 'CREATED',
+        },
+      }),
+      this.prisma.booking.count({
+        where: {
+          doctor_id: doctor.id,
+          status: 'COMPLETED',
+        },
+      }),
+    ]);
+
+    return {
+      today_appointments: todayAppointments,
+      total_patients: uniquePatients,
+      pending_bookings: pendingBookings,
+      completed_consultations: completedConsultations,
+      revenue_month: 0,
+    };
+  }
 }

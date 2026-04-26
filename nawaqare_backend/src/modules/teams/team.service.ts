@@ -46,4 +46,33 @@ export class TeamService {
       },
     });
   }
+
+  async updateTeamMemberPermissions(teamMemberId: string, permissions: any) {
+    const teamMember = await this.prisma.teamMember.findUnique({
+      where: { id: teamMemberId },
+    });
+
+    if (!teamMember) {
+      throw new NotFoundException('Team member not found');
+    }
+
+    return this.prisma.teamMember.update({
+      where: { id: teamMemberId },
+      data: { permissions },
+    });
+  }
+
+  async removeTeamMember(teamMemberId: string) {
+    const teamMember = await this.prisma.teamMember.findUnique({
+      where: { id: teamMemberId },
+    });
+
+    if (!teamMember) {
+      throw new NotFoundException('Team member not found');
+    }
+
+    return this.prisma.teamMember.delete({
+      where: { id: teamMemberId },
+    });
+  }
 }

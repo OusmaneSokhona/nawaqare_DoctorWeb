@@ -55,11 +55,4 @@ export const suspendMember = async (memberId: string): Promise<void> => {
 };
 
 // Remove team member
-export const removeTeamMember = async (memberId: string): Promise<void> => {
-  try {
-    await axiosClient.delete(`/api/v1/team-members/${memberId}`);
-  } catch (error) {
-    console.error("Error removing team member:", error);
-    throw error;
-  }
-};
+export const removeTeamMember = async

@@ -29,6 +29,16 @@ export class DoctorsController {
     return this.doctorsService.searchDoctors(query, pagination);
   }
 
+  @Get('dashboard/stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('DOCTOR')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Get dashboard statistics for current doctor' })
+  async getDashboardStats(@CurrentUser() user: CurrentUserDto) {
+    const stats = await this.doctorsService.getDashboardStats(user.id);
+    return { data: stats };
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get doctor profile' })
   async getDoctorProfile(@Param('id') id: string) {

@@ -280,20 +280,4 @@ const SOAPNotes: React.FC<SOAPNotesProps> = ({ consultationId, onSave }) => {
           onClick={handleSave}
           className="flex-1 flex items-center justify-center gap-2"
         >
-          <Icon icon="ic:baseline-save" width={18} height={18} />
-          Save
-        </Button>
-        <Button
-          variant="outlined"
-          size="medium"
-          onClick={handleSaveDraft}
-          className="flex-1"
-        >
-          Save as Draft
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-export default SOAPNotes;
+          <Icon icon="ic:baseline-save" width={18} height={18}
