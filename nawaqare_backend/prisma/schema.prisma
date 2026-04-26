@@ -1,0 +1,815 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  PATIENT
+  DOCTOR
+  PHARMACIST
+  ADMIN
+}
+
+enum BookingStatus {
+  CREATED
+  CONFIRMED
+  RESCHEDULED
+  CANCELLED
+  IN_PROGRESS
+  COMPLETED
+  NO_SHOW
+}
+
+enum ConsultationMode {
+  VIDEO
+  IN_PERSON
+  HOME_VISIT
+}
+
+enum PrescriptionStatus {
+  CREATED
+  SENT
+  RECEIVED
+  VALIDATED
+  PARTIAL
+  REJECTED
+  PREPARED
+  DELIVERED
+}
+
+enum DocumentType {
+  ORDONNANCE
+  RESULTAT_LABO
+  IMAGERIE
+  CERTIFICAT
+  ATTESTATION
+  ARRET_TRAVAIL
+  AUTRE
+}
+
+enum PaymentMethod {
+  ORANGE_MONEY
+  WAVE
+  VISA_MASTERCARD
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum ConsentType {
+  MEDICAL_RECORD_ACCESS
+  DATA_PROCESSING
+  RESEARCH_ANONYMIZED
+}
+
+enum ExamOrderStatus {
+  REQUESTED
+  SENT_TO_PATIENT
+  COMPLETED
+  RESULTS_AVAILABLE
+  REVIEWED
+}
+
+enum ExamOrderType {
+  BLOOD_TEST
+  URINE_TEST
+  IMAGING
+  BIOPSY
+  OTHER
+}
+
+enum ExamPriority {
+  ROUTINE
+  URGENT
+  STAT
+}
+
+enum ReferenceStatus {
+  SENT
+  ACCEPTED
+  RESPONDED
+}
+
+enum CertificateType {
+  MEDICAL_CERTIFICATE
+  SICK_LEAVE
+  ATTESTATION
+}
+
+enum MessageCategory {
+  TREATMENT_QUESTION
+  SIDE_EFFECTS
+  ADMINISTRATIVE
+  FOLLOW_UP
+}
+
+enum ComplianceItemStatus {
+  VERIFIED
+  EXPIRING_SOON
+  EXPIRED
+  MISSING
+}
+
+enum AuditAction {
+  READ
+  WRITE
+  EXPORT
+  DELETE
+  LOGIN
+  LOGOUT
+  EMERGENCY_ACCESS
+}
+
+enum NotificationType {
+  SMS
+  PUSH
+  EMAIL
+}
+
+// ============================================================================
+// IDENTITY ZONE (PII) - Users and authentication
+// ============================================================================
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  phone             String    @unique
+  email             String?
+  role              UserRole  @default(PATIENT)
+  is_active         Boolean   @default(true)
+  is_locked         Boolean   @default(false)
+  failed_attempts   Int       @default(0)
+  locked_until      DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  profile           UserProfile?
+  refresh_tokens    RefreshToken[]
+  sessions          Session[]
+  mfa_config        MfaConfig?
+  consents          Consent[]
+  doctor            Doctor?
+  pharmacy          Pharmacy?
+  notifications     Notification[]
+  audit_logs_actor  AuditLog[] @relation("AuditLogActor")
+
+  @@index([phone])
+  @@index([email])
+  @@index([role])
+  @@index([is_active])
+  @@map("users")
+}
+
+model UserProfile {
+  id                        String    @id @default(uuid()) @db.Uuid
+  user_id                   String    @unique @db.Uuid
+  first_name                String
+  last_name                 String
+  birth_date                DateTime?
+  gender                    String?
+  nina_encrypted            String?
+  address_encrypted         String?
+  blood_group               String?
+  profile_photo_url         String?
+  emergency_contact_name    String?
+  emergency_contact_phone   String?
+  created_at                DateTime  @default(now())
+  updated_at                DateTime  @updatedAt
+
+  // Relations
+  user                      User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@index([first_name, last_name])
+  @@map("user_profiles")
+}
+
+model RefreshToken {
+  id                String    @id @default(uuid()) @db.Uuid
+  user_id           String    @db.Uuid
+  token_hash        String    @unique
+  expires_at        DateTime
+  revoked           Boolean   @default(false)
+  created_at        DateTime  @default(now())
+
+  // Relations
+  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@index([token_hash])
+  @@index([revoked])
+  @@map("refresh_tokens")
+}
+
+model Session {
+  id                String    @id @default(uuid()) @db.Uuid
+  user_id           String    @db.Uuid
+  device_info       String?
+  ip_address        String?
+  last_active       DateTime  @updatedAt
+  is_active         Boolean   @default(true)
+  created_at        DateTime  @default(now())
+
+  // Relations
+  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@index([is_active])
+  @@index([created_at])
+  @@map("sessions")
+}
+
+model MfaConfig {
+  id                String    @id @default(uuid()) @db.Uuid
+  user_id           String    @unique @db.Uuid
+  method            String
+  secret_encrypted  String?
+  is_enabled        Boolean   @default(false)
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@map("mfa_configs")
+}
+
+model OtpCode {
+  id                String    @id @default(uuid()) @db.Uuid
+  registration_id   String    @unique @db.Uuid
+  phone             String
+  code_hash         String
+  expires_at        DateTime
+  used              Boolean   @default(false)
+  created_at        DateTime  @default(now())
+
+  @@index([phone])
+  @@index([expires_at])
+  @@index([used])
+  @@map("otp_codes")
+}
+
+model Consent {
+  id                String    @id @default(uuid()) @db.Uuid
+  user_id           String    @db.Uuid
+  consent_type      ConsentType
+  granted           Boolean
+  granted_at        DateTime?
+  revoked_at        DateTime?
+  ip_address        String?
+  version           String
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@index([consent_type])
+  @@index([granted])
+  @@map("consents")
+}
+
+// ============================================================================
+// CLINICAL ZONE (Pseudonymized) - Medical data
+// ============================================================================
+
+model Doctor {
+  id                String              @id @default(uuid()) @db.Uuid
+  user_id           String              @unique @db.Uuid
+  onmc_number       String              @unique
+  specialty         String
+  tarif_xof         Int
+  bio               String?
+  is_verified       Boolean             @default(false)
+  verification_status String?
+  languages         String[]
+  rating            Decimal             @default(0) @db.Decimal(3, 2)
+  total_consultations Int              @default(0)
+  consultation_modes ConsultationMode[] @default([])
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+
+  // Relations
+  user              User                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  structures        DoctorStructure[]
+  time_slots        TimeSlot[]
+  bookings          Booking[]
+  consultations     Consultation[]
+  prescriptions     Prescription[]
+  exam_orders       ExamOrder[]
+  reference_letters ReferenceLettre[]
+  certificates      MedicalCertificate[]
+  conversations     Conversation[]
+  compliance_items  ComplianceItem[]
+  team_members      TeamMember[] @relation("DoctorTeamMembers")
+  invited_members   TeamMember[] @relation("InvitedMembers")
+
+  @@index([user_id])
+  @@index([specialty])
+  @@index([is_verified])
+  @@index([onmc_number])
+  @@map("doctors")
+}
+
+model DoctorStructure {
+  id                String    @id @default(uuid()) @db.Uuid
+  doctor_id         String    @db.Uuid
+  name              String
+  address           String
+  type              String
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  doctor            Doctor    @relation(fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([doctor_id])
+  @@map("doctor_structures")
+}
+
+model TimeSlot {
+  id                String              @id @default(uuid()) @db.Uuid
+  doctor_id         String              @db.Uuid
+  start_time        DateTime
+  end_time          DateTime
+  is_available      Boolean             @default(true)
+  consultation_mode ConsultationMode
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+
+  // Relations
+  doctor            Doctor              @relation(fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  booking           Booking?
+
+  @@index([doctor_id])
+  @@index([start_time])
+  @@index([is_available])
+  @@map("time_slots")
+}
+
+model Pharmacy {
+  id                String    @id @default(uuid()) @db.Uuid
+  user_id           String    @unique @db.Uuid
+  name              String
+  address           String
+  ninea             String    @unique
+  subscription_status String?
+  is_verified       Boolean   @default(false)
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@index([ninea])
+  @@index([is_verified])
+  @@map("pharmacies")
+}
+
+model Booking {
+  id                String              @id @default(uuid()) @db.Uuid
+  patient_uuid      String              @db.Uuid
+  doctor_id         String              @db.Uuid
+  slot_id           String              @unique @db.Uuid
+  status            BookingStatus       @default(CREATED)
+  consultation_mode ConsultationMode
+  notes_patient     String?
+  idempotency_key   String              @unique
+  cancelled_reason  String?
+  cancelled_by      String?
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+
+  // Relations
+  doctor            Doctor              @relation(fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  time_slot         TimeSlot            @relation(fields: [slot_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  payment           Payment?
+  consultation      Consultation?
+
+  @@index([patient_uuid])
+  @@index([doctor_id])
+  @@index([status])
+  @@index([created_at])
+  @@map("bookings")
+}
+
+model Consultation {
+  id                String    @id @default(uuid()) @db.Uuid
+  booking_id        String    @unique @db.Uuid
+  janus_room_id     String?
+  status            String    @default("CREATED")
+  started_at        DateTime?
+  ended_at          DateTime?
+  patient_uuid      String    @db.Uuid
+  doctor_id         String    @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  booking           Booking   @relation(fields: [booking_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  doctor            Doctor    @relation(fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  soap_note         SoapNote?
+  prescriptions     Prescription[]
+  exam_orders       ExamOrder[]
+  reference_letters ReferenceLettre[]
+  certificates      MedicalCertificate[]
+  follow_up_plan    FollowUpPlan?
+  conversations     Conversation[]
+  documents         MedicalDocument[]
+
+  @@index([booking_id])
+  @@index([patient_uuid])
+  @@index([doctor_id])
+  @@index([status])
+  @@map("consultations")
+}
+
+model SoapNote {
+  id                String    @id @default(uuid()) @db.Uuid
+  consultation_id   String    @unique @db.Uuid
+  subjective        String?
+  objective         String?
+  assessment        String?
+  diagnosis_code    String?
+  diagnosis_label   String?
+  plan              String?
+  follow_up_days    Int?
+  is_signed         Boolean   @default(false)
+  signed_at         DateTime?
+  signed_by         String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  consultation      Consultation @relation(fields: [consultation_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([consultation_id])
+  @@index([is_signed])
+  @@map("soap_notes")
+}
+
+model Prescription {
+  id                String              @id @default(uuid()) @db.Uuid
+  consultation_id   String              @db.Uuid
+  doctor_id         String              @db.Uuid
+  patient_uuid      String              @db.Uuid
+  status            PrescriptionStatus  @default(CREATED)
+  valid_until       DateTime
+  qr_code_token     String              @unique
+  signed_hash       String?
+  is_signed         Boolean             @default(false)
+  signed_at         DateTime?
+  pharmacy_notes    String?
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+
+  // Relations
+  consultation      Consultation @relation(fields: [consultation_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  doctor            Doctor       @relation(fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  prescription_lines PrescriptionLine[]
+
+  @@index([consultation_id])
+  @@index([patient_uuid])
+  @@index([doctor_id])
+  @@index([status])
+  @@index([qr_code_token])
+  @@map("prescriptions")
+}
+
+model PrescriptionLine {
+  id                String    @id @default(uuid()) @db.Uuid
+  prescription_id   String    @db.Uuid
+  drug_name         String
+  dosage            String
+  frequency         String
+  duration_days     Int
+  quantity          Int
+  instructions      String?
+  dci               String?
+  created_at        DateTime  @default(now())
+
+  // Relations
+  prescription      Prescription @relation(fields: [prescription_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([prescription_id])
+  @@map("prescription_lines")
+}
+
+model MedicalDocument {
+  id                String    @id @default(uuid()) @db.Uuid
+  patient_uuid      String    @db.Uuid
+  uploaded_by       String    @db.Uuid
+  doc_type          DocumentType
+  s3_key            String
+  filename          String
+  mime_type         String
+  size_bytes        Int
+  description       String?
+  is_deleted        Boolean   @default(false)
+  consultation_id   String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  consultation      Consultation? @relation(fields: [consultation_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  exam_orders       ExamOrder[] @relation("ExamOrderResults")
+  certificates      MedicalCertificate[] @relation("CertificateDocuments")
+  messages          Message[]
+
+  @@index([patient_uuid])
+  @@index([doc_type])
+  @@index([consultation_id])
+  @@index([is_deleted])
+  @@map("medical_documents")
+}
+
+model Payment {
+  id                String    @id @default(uuid()) @db.Uuid
+  booking_id        String    @unique @db.Uuid
+  amount            Int
+  currency          String    @default("XOF")
+  method            PaymentMethod
+  status            PaymentStatus @default(PENDING)
+  external_ref      String?
+  idempotency_key   String    @unique
+  redirect_url      String?
+  webhook_received_at DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  booking           Booking   @relation(fields: [booking_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([booking_id])
+  @@index([status])
+  @@index([external_ref])
+  @@map("payments")
+}
+
+model ExamOrder {
+  id                String    @id @default(uuid()) @db.Uuid
+  consultation_id   String    @db.Uuid
+  patient_uuid      String    @db.Uuid
+  doctor_id         String    @db.Uuid
+  type              ExamOrderType
+  priority          ExamPriority @default(ROUTINE)
+  description       String
+  instructions      String?
+  notes_patient     String?
+  status            ExamOrderStatus @default(REQUESTED)
+  result_document_id String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  consultation      Consultation @relation(fields: [consultation_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  doctor            Doctor    @relation(fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  result_document   MedicalDocument? @relation("ExamOrderResults", fields: [result_document_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([consultation_id])
+  @@index([patient_uuid])
+  @@index([doctor_id])
+  @@index([type])
+  @@index([priority])
+  @@index([status])
+  @@map("exam_orders")
+}
+
+model ReferenceLettre {
+  id                String    @id @default(uuid()) @db.Uuid
+  consultation_id   String    @db.Uuid
+  from_doctor_id    String    @db.Uuid
+  specialty_target  String
+  urgency           String
+  clinical_summary  String
+  referral_reason   String
+  status            ReferenceStatus @default(SENT)
+  response_text     String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  consultation      Consultation @relation(fields: [consultation_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  from_doctor       Doctor    @relation(fields: [from_doctor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([consultation_id])
+  @@index([from_doctor_id])
+  @@index([status])
+  @@map("reference_lettres")
+}
+
+model MedicalCertificate {
+  id                String    @id @default(uuid()) @db.Uuid
+  consultation_id   String    @db.Uuid
+  doctor_id         String    @db.Uuid
+  patient_uuid      String    @db.Uuid
+  type              CertificateType
+  content           String
+  duration_days     Int?
+  is_signed         Boolean   @default(false)
+  signed_at         DateTime?
+  s3_key            String?
+  document_id       String?   @db.Uuid
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  consultation      Consultation    @relation(fields: [consultation_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  doctor            Doctor          @relation(fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  document          MedicalDocument? @relation("CertificateDocuments", fields: [document_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([consultation_id])
+  @@index([doctor_id])
+  @@index([patient_uuid])
+  @@index([type])
+  @@map("medical_certificates")
+}
+
+model FollowUpPlan {
+  id                String    @id @default(uuid()) @db.Uuid
+  consultation_id   String    @unique @db.Uuid
+  objectives        Json
+  control_visits    Json
+  reminders         Json
+  red_flags         Json
+  patient_summary_fr String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  consultation      Consultation @relation(fields: [consultation_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([consultation_id])
+  @@map("follow_up_plans")
+}
+
+model Conversation {
+  id                String    @id @default(uuid()) @db.Uuid
+  patient_uuid      String    @db.Uuid
+  doctor_id         String    @db.Uuid
+  consultation_id   String?   @db.Uuid
+  context_label     String?
+  is_closed         Boolean   @default(false)
+  closed_at         DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  doctor            Doctor    @relation(fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  consultation      Consultation? @relation(fields: [consultation_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  messages          Message[]
+
+  @@index([patient_uuid])
+  @@index([doctor_id])
+  @@index([consultation_id])
+  @@index([is_closed])
+  @@map("conversations")
+}
+
+model Message {
+  id                String    @id @default(uuid()) @db.Uuid
+  conversation_id   String    @db.Uuid
+  sender_uuid       String    @db.Uuid
+  content           String
+  category          MessageCategory?
+  attachment_id     String?   @db.Uuid
+  is_read           Boolean   @default(false)
+  read_at           DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  conversation      Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  attachment        MedicalDocument? @relation(fields: [attachment_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([conversation_id])
+  @@index([sender_uuid])
+  @@index([is_read])
+  @@index([created_at])
+  @@map("messages")
+}
+
+model Vaccination {
+  id                String    @id @default(uuid()) @db.Uuid
+  patient_uuid      String    @db.Uuid
+  vaccine_name      String
+  date_given        DateTime?
+  dose_number       Int
+  total_doses       Int
+  next_due          DateTime?
+  status            String    @default("SCHEDULED")
+  certificate_doc_id String?
+  administered_by   String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@index([patient_uuid])
+  @@index([vaccine_name])
+  @@index([status])
+  @@map("vaccinations")
+}
+
+model TeamMember {
+  id                String    @id @default(uuid()) @db.Uuid
+  doctor_id         String    @db.Uuid
+  member_user_id    String    @db.Uuid
+  role              String
+  permissions       Json
+  status            String    @default("PENDING")
+  invited_at        DateTime  @default(now())
+  joined_at         DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  doctor            Doctor    @relation("DoctorTeamMembers", fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  member_user       Doctor    @relation("InvitedMembers", fields: [member_user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([doctor_id])
+  @@index([member_user_id])
+  @@index([status])
+  @@map("team_members")
+}
+
+model ComplianceItem {
+  id                String    @id @default(uuid()) @db.Uuid
+  doctor_id         String    @db.Uuid
+  item_type         String
+  status            ComplianceItemStatus @default(MISSING)
+  document_url      String?
+  expires_at        DateTime?
+  verified_at       DateTime?
+  notes             String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  doctor            Doctor    @relation(fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([doctor_id])
+  @@index([status])
+  @@index([expires_at])
+  @@map("compliance_items")
+}
+
+model AuditLog {
+  id                String    @id @default(uuid()) @db.Uuid
+  actor_uuid        String    @db.Uuid
+  target_uuid       String?   @db.Uuid
+  action            AuditAction
+  resource_type     String
+  resource_id       String?
+  ip_address        String?
+  user_agent        String?
+  details           Json?
+  created_at        DateTime  @default(now())
+
+  // Relations
+  actor             User      @relation("AuditLogActor", fields: [actor_uuid], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([actor_uuid])
+  @@index([target_uuid])
+  @@index([action])
+  @@index([resource_type])
+  @@index([created_at])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id                String    @id @default(uuid()) @db.Uuid
+  user_id           String    @db.Uuid
+  type              NotificationType
+  title             String
+  body              String
+  is_read           Boolean   @default(false)
+  data              Json?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@index([type])
+  @@index([is_read])
+  @@index([created_at])
+  @@map("notifications")
+}
