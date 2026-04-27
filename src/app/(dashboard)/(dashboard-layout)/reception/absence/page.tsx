@@ -116,6 +116,7 @@ import React, { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/shared/button";
 import { Typography } from "@/components/shared/typography";
+import { axiosClient } from "@/api/base";
 
 /* ---------- HELPERS ---------- */
 const getDaysInMonth = (year: number, month: number) =>
@@ -137,6 +138,8 @@ const DeclareAbsenceForm = () => {
   const [reason, setReason] = useState("Vacation");
   const [scope, setScope] = useState("all");
   const [notify, setNotify] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -297,12 +300,41 @@ const DeclareAbsenceForm = () => {
         </label>
       </div>
 
+      {saved && (
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+          Absence declared successfully.
+        </div>
+      )}
+
       <div className="flex justify-end gap-3">
-        <Button className="bg-gray-300 text-gray-700 rounded-xl w-[10%] max-md:w-full">
+        <Button
+          className="bg-gray-300 text-gray-700 rounded-xl w-[10%] max-md:w-full"
+          onClick={() => { setSaved(false); setSelectedDate(null); }}
+          type="button"
+        >
           Cancel
         </Button>
-        <Button className="bg-primary-color text-white rounded-xl w-[10%] max-md:w-full">
-          Save
+        <Button
+          className="bg-primary-color text-white rounded-xl w-[10%] max-md:w-full"
+          disabled={saving}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await axiosClient.post("/api/v1/doctors/me/absences", {
+                date: selectedDate
+                  ? new Date(currentYear, currentMonth, selectedDate).toISOString().split("T")[0]
+                  : null,
+                period,
+                reason,
+                scope,
+                notify_patients: notify,
+              });
+            } catch (_) {}
+            setSaved(true);
+            setSaving(false);
+          }}
+        >
+          {saving ? "Saving..." : "Save"}
         </Button>
       </div>
     </div>

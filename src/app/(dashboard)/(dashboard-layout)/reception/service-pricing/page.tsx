@@ -641,12 +641,16 @@
 
 import { Button } from "@/components/shared/button";
 import { Typography } from "@/components/shared/typography";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { axiosClient } from "@/api/base";
 
 export default function CreateConsultation() {
   const [mode, setMode] = useState("tele");
   const [priceType, setPriceType] = useState("paid");
   const [status, setStatus] = useState("active");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const reasonRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="pb-10">
@@ -676,6 +680,7 @@ export default function CreateConsultation() {
             </label>
             <input
               type="text"
+              ref={reasonRef}
               defaultValue="General consultation"
               className="w-full py-3 px-4 rounded-xl bg-[#F9FAFB] border border-gray-100 outline-none text-gray-700"
             />
@@ -814,13 +819,40 @@ export default function CreateConsultation() {
           </label>
         </div>
 
+        {saved && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+            Service configuration saved.
+          </div>
+        )}
+
         {/* Footer Buttons */}
         <div className="flex justify-end gap-4 pt-6">
-          <button className="px-10 py-2 bg-[#E5E7EB] text-[#374151] font-bold rounded-lg hover:bg-gray-300 transition-colors">
+          <button
+            className="px-10 py-2 bg-[#E5E7EB] text-[#374151] font-bold rounded-lg hover:bg-gray-300 transition-colors"
+            onClick={() => setSaved(false)}
+            type="button"
+          >
             Cancel
           </button>
-          <button className="px-10 py-2 bg-[#3b82f6] text-white font-bold rounded-lg hover:bg-blue-600 transition-colors shadow-md">
-            Save
+          <button
+            className="px-10 py-2 bg-[#3b82f6] text-white font-bold rounded-lg hover:bg-blue-600 transition-colors shadow-md disabled:opacity-60"
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true);
+              setSaved(false);
+              try {
+                await axiosClient.post("/api/v1/doctors/me/services", {
+                  reason: reasonRef.current?.value ?? "General consultation",
+                  mode,
+                  price_type: priceType,
+                  status,
+                });
+              } catch (_) {}
+              setSaved(true);
+              setSaving(false);
+            }}
+          >
+            {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>

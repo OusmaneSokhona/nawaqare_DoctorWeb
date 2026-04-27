@@ -3,6 +3,8 @@
 import { Typography } from "@/components/shared/typography";
 import { Button } from "@/components/shared/button";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getMe, UserProfile } from "@/api/service/auth";
 
 const Row = ({ label, value }: { label: string; value?: string }) => (
   <div className="flex justify-between py-3 border-b border-gray-200 text-sm">
@@ -27,6 +29,23 @@ const Toggle = ({ checked }: { checked: boolean }) => (
 
 export default function PersonalInformation() {
   const router = useRouter();
+  const [user, setUser] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    getMe()
+      .then((data) => setUser(data))
+      .catch(() => {});
+  }, []);
+
+  const p = user?.profile;
+  const fullName = p
+    ? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim()
+    : "—";
+  const dob = p?.date_of_birth
+    ? new Date(p.date_of_birth).toLocaleDateString("fr-FR")
+    : "—";
+  const languages: string[] = p?.languages ?? [];
+
   return (
     <div className="rounded-2xl w-full">
       {/* HEADER */}
@@ -34,20 +53,8 @@ export default function PersonalInformation() {
         <Typography size="h4" className="font-semibold">
           Personal Information
         </Typography>
-
         <Button
-          className="
-      bg-primary-color
-      text-white
-      rounded-lg
-      text-sm
-      px-1
-      sm:px-4
-      py-2
-      w-full
-      sm:w-auto
-      sm:min-w-[180px]
-    "
+          className="bg-primary-color text-white rounded-lg text-sm px-1 sm:px-4 py-2 w-full sm:w-auto sm:min-w-[180px]"
           onClick={() => router.push(`/profile/edit`)}
         >
           Edit Personal Info
@@ -57,74 +64,70 @@ export default function PersonalInformation() {
       {/* IDENTITY */}
       <section className="mb-6">
         <Typography className="font-semibold mb-2">Identity</Typography>
-        <Row label="Full Name" value="Dr. Daniel Lee" />
-        <Row label="Date of birth" value="02/Sep/2025" />
-        <Row label="ID Number" value="NID-SN-98374521" />
-        <Row label="ID Type" value="Numeric" />
-        <Row label="Expiry date" value="12/Sep/2022" />
+        <Row label="Full Name" value={fullName} />
+        <Row label="Date of birth" value={dob} />
+        <Row label="ID Number" value={p?.id_number} />
+        <Row label="ID Type" value={p?.id_type} />
+        <Row label="Expiry date" value={p?.id_expiry} />
       </section>
 
       {/* CONTACT */}
       <section className="mb-6">
         <Typography className="font-semibold mb-2">Contact</Typography>
-        <Row label="Email" value="Abc@gmail.com" />
-        <Row label="Phone" value="+1 234 567 890" />
-        <Row label="WhatsApp" value="+1 234 567 890" />
-        <Row label="City" value="Lahore" />
-        <Row label="Area" value="Johar Town" />
-        <Row label="Address" value="67 avenue de Paris, 75000 Paris" />
+        <Row label="Email" value={user?.email} />
+        <Row label="Phone" value={user?.phone} />
+        <Row label="WhatsApp" value={p?.phone_whatsapp} />
+        <Row label="City" value={p?.city} />
+        <Row label="Area" value={p?.area} />
+        <Row label="Address" value={p?.address} />
       </section>
 
       {/* DEMOGRAPHICS */}
       <section className="mb-6">
         <Typography className="font-semibold mb-2">Demographics</Typography>
-        <Row label="Gender" value="Female" />
-        <Row label="Nationality" value="Islam" />
+        <Row label="Gender" value={p?.gender} />
+        <Row label="Nationality" value={p?.nationality} />
       </section>
 
       {/* PROFILE DISPLAY */}
       <section className="mb-6">
         <Typography className="font-semibold mb-3">Profile Display</Typography>
-
-        <div className="flex justify-between items-center py-2 border-b border-gray-200 text-md text-gray-400">
-          <span>Male</span>
-          <Toggle checked={false} />
-        </div>
-
-        <div className="flex justify-between items-center py-2 border-b border-gray-200 text-md text-gray-400">
-          <span>Female</span>
-          <Toggle checked />
-        </div>
-
         <div className="flex justify-between items-center py-2 border-b border-gray-200 text-md text-gray-400">
           <span>Public Profile</span>
-          <Toggle checked />
+          <Toggle checked={user?.is_active ?? false} />
         </div>
       </section>
 
       {/* LANGUAGE */}
       <section className="mb-6">
         <Typography className="font-semibold mb-2">Language Spoken</Typography>
-        <div className="flex flex-wrap gap-2">
-          <span className="px-3 py-1 rounded-md bg-green-100 text-green-700 text-xs font-medium">
-            Urdu
-          </span>
-          <span className="px-3 py-1 rounded-md bg-green-100 text-green-700 text-xs font-medium">
-            English
-          </span>
-        </div>
+        {languages.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {languages.map((lang) => (
+              <span
+                key={lang}
+                className="px-3 py-1 rounded-md bg-green-100 text-green-700 text-xs font-medium"
+              >
+                {lang}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <Typography size="sm" className="text-gray-400">
+            No languages set
+          </Typography>
+        )}
       </section>
 
       {/* ABOUT */}
-      <section>
-        <Typography className="font-semibold text-gray-400 mb-2">
-          About Me
-        </Typography>
-        <p className="text-sm text-gray-600 leading-relaxed">
-          Dr. David Patel, a dedicated cardiologist, brings a wealth of
-          experience to Golden Gate Cardiology Center in Golden Gate, CA.
-        </p>
-      </section>
+      {p?.about && (
+        <section>
+          <Typography className="font-semibold text-gray-400 mb-2">
+            About Me
+          </Typography>
+          <p className="text-sm text-gray-600 leading-relaxed">{p.about}</p>
+        </section>
+      )}
     </div>
   );
 }

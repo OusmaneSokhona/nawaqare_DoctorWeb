@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormik } from "formik";
-import React from "react";
+import React, { useState } from "react";
 
 import { Button } from "@/components/shared/button";
 import Container from "@/components/shared/container";
@@ -12,8 +12,12 @@ import { securityForm } from "@/formik/forms/dashboard";
 import { securityInitialValues } from "@/formik/initial-values/dashboard";
 import { securityFormSchema } from "@/formik/validations/dashboard";
 import { getError } from "@/utils/form-helpers";
+import { changePassword } from "@/api/service/auth";
 
 const SecurityPage = () => {
+  const [apiError, setApiError] = useState("");
+  const [apiSuccess, setApiSuccess] = useState(false);
+
   const {
     formFields: { old_password, new_password, confirm_password },
   } = securityForm;
@@ -28,10 +32,26 @@ const SecurityPage = () => {
     handleChange,
     handleSubmit,
     resetForm,
+    isSubmitting,
   } = useFormik({
     initialValues: securityInitialValues,
-    onSubmit: () => {
-      resetForm();
+    onSubmit: async (vals, { setSubmitting }) => {
+      setApiError("");
+      setApiSuccess(false);
+      try {
+        await changePassword({
+          old_password: vals.old_password,
+          new_password: vals.new_password,
+        });
+        setApiSuccess(true);
+        resetForm();
+      } catch (err: any) {
+        setApiError(
+          err?.response?.data?.message ?? "Failed to update password."
+        );
+      } finally {
+        setSubmitting(false);
+      }
     },
     validationSchema: securityFormSchema,
   });
@@ -66,6 +86,16 @@ const SecurityPage = () => {
                 <Typography as="h5" size="h5" className="text-primary-dark">
                   Change Password
                 </Typography>
+                {apiSuccess && (
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                    Password updated successfully!
+                  </div>
+                )}
+                {apiError && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    {apiError}
+                  </div>
+                )}
                 <form
                   onSubmit={handleSubmit}
                   className="flex flex-col gap-4 pt-6 md:pt-8"
@@ -115,9 +145,9 @@ const SecurityPage = () => {
                       type="submit"
                       variant="primary"
                       className="w-full"
-                      disabled={!(isValid && dirty)}
+                      disabled={!(isValid && dirty) || isSubmitting}
                     >
-                      Update Password
+                      {isSubmitting ? "Updating..." : "Update Password"}
                     </Button>
                   </div>
                 </form>

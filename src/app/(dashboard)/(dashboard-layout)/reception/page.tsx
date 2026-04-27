@@ -186,14 +186,37 @@ import { Typography } from "@/components/shared/typography";
 import { quickCard } from "@/data";
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { axiosClient } from "@/api/base";
 
 const Reception = () => {
   const router = useRouter();
+
+  const [availableCount, setAvailableCount] = useState("22");
+  const [bookedCount, setBookedCount] = useState("22");
+  const [absenceCount, setAbsenceCount] = useState("2");
+
+  useEffect(() => {
+    axiosClient
+      .get("/api/v1/bookings/doctor")
+      .then((res) => {
+        const data: any[] = res.data?.data ?? res.data ?? [];
+        if (Array.isArray(data)) {
+          const booked = data.filter((b: any) =>
+            ["CONFIRMED", "PENDING"].includes(b.status)
+          ).length;
+          const available = Math.max(0, 30 - booked);
+          setBookedCount(String(booked));
+          setAvailableCount(String(available));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const receptionCards = [
-    { title: "22", desc: "Available", heading: " slots visible to patients" },
-    { title: "22", desc: "Slots Booked", heading: " upcoming consultations" },
-    { title: "2", desc: "Planned Absences", heading: "Impacts slots" },
+    { title: availableCount, desc: "Available", heading: " slots visible to patients" },
+    { title: bookedCount, desc: "Slots Booked", heading: " upcoming consultations" },
+    { title: absenceCount, desc: "Planned Absences", heading: "Impacts slots" },
     { title: "2", desc: "Active Reasons", heading: " active reasons" },
   ];
 

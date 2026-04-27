@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
 import { Button } from "@/components/shared/button";
 import { Typography } from "@/components/shared/typography";
+import { axiosClient } from "@/api/base";
 
 // Load Quill dynamically (avoids SSR issues)
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -34,10 +35,40 @@ const formats = [
 
 export default function ConsentPage() {
   const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Load existing consent on mount
+  useEffect(() => {
+    axiosClient
+      .get("/api/v1/access-control/me/consents")
+      .then((res) => {
+        const data = res.data?.data ?? res.data;
+        const general = Array.isArray(data)
+          ? data.find((c: any) => c.type === "general" || c.type === "GENERAL")
+          : null;
+        if (general?.content) setDescription(general.content);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitted Description:", description);
+    setSaving(true);
+    setSaved(false);
+    setError("");
+    try {
+      await axiosClient.put("/api/v1/access-control/me/consents/general", {
+        content: description,
+        type: "general",
+      });
+      setSaved(true);
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? "Failed to save consent.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -45,6 +76,16 @@ export default function ConsentPage() {
       <Typography size="h3" as="h3">
         Consent
       </Typography>
+      {saved && (
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm mb-4">
+          Consent updated successfully.
+        </div>
+      )}
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-4">
+          {error}
+        </div>
+      )}
       <div className="containers rounded-md bg-white p-6 shadow-sm">
         <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
           {/* Description Box */}
@@ -70,11 +111,11 @@ export default function ConsentPage() {
             </Button>
             <Button
               type="submit"
-              // variant="primary"
               size="medium"
               className="w-[191px] text-white rounded-xl bg-primary-color"
+              disabled={saving}
             >
-              Update
+              {saving ? "Saving..." : "Update"}
             </Button>
           </div>
         </form>

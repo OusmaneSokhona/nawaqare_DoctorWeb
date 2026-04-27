@@ -4,36 +4,66 @@ import { Typography } from "@/components/shared/typography";
 import { reveiwsTable } from "@/data";
 import { Reveiws } from "@/types/dashboard";
 import { Rating } from "react-simple-star-rating";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
-
-const stats = [
-  {
-    icon: "mdi:star-rate",
-    stat: "32",
-    title: "Reviews Pending Moderation",
-  },
-  {
-    icon: "material-symbols:do-not-disturb-on-total-silence-rounded",
-    stat: "20%",
-    title: "Moderated This Month",
-  },
-  {
-    icon: "ix:distribution",
-    stat: "5-star",
-    title: "Rating Distribution",
-  },
-  {
-    icon: "material-symbols:published-with-changes",
-    stat: "12%",
-    title: "Total Published Reviews",
-  },
-];
+import { axiosClient } from "@/api/base";
 
 const ReviewsPage = () => {
   const router = useRouter();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<Reveiws[]>(reveiwsTable.rowsData as Reveiws[]);
+  const [pendingCount, setPendingCount] = useState(32);
+  const [publishedCount, setPublishedCount] = useState(0);
+
+  useEffect(() => {
+    axiosClient
+      .get("/api/v1/doctors/me/reviews")
+      .then((res) => {
+        const data: any[] = res.data?.data ?? res.data ?? [];
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: Reveiws[] = data.map((r: any) => ({
+            id: r.id,
+            patientName: r.patient_name ?? r.reviewer_name ?? "Patient",
+            doctorName: r.doctor_name ?? "Doctor",
+            consultationType: r.consultation_type ?? r.type ?? "Consultation",
+            comments: r.comment ?? r.content ?? "",
+            rating: r.rating ?? 5,
+            Status: r.status === "PUBLISHED" ? "Published" : r.status === "PENDING" ? "Pending" : "Draft",
+            Date: r.created_at
+              ? new Date(r.created_at).toLocaleDateString("fr-FR")
+              : "",
+          }));
+          setReviews(mapped);
+          setPendingCount(mapped.filter((r) => r.Status === "Pending").length);
+          setPublishedCount(mapped.filter((r) => r.Status === "Published").length);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const stats = [
+    {
+      icon: "mdi:star-rate",
+      stat: String(pendingCount),
+      title: "Reviews Pending Moderation",
+    },
+    {
+      icon: "material-symbols:do-not-disturb-on-total-silence-rounded",
+      stat: "20%",
+      title: "Moderated This Month",
+    },
+    {
+      icon: "ix:distribution",
+      stat: "5-star",
+      title: "Rating Distribution",
+    },
+    {
+      icon: "material-symbols:published-with-changes",
+      stat: String(publishedCount),
+      title: "Total Published Reviews",
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-5">
@@ -68,7 +98,7 @@ const ReviewsPage = () => {
       </div>
       <DataTable
         ColumnsData={reveiwsTable.ColumnsData}
-        tableRows={reveiwsTable.rowsData}
+        tableRows={reviews}
         roundedHeader={true}
         paginate={true}
         TableBodyRow={({

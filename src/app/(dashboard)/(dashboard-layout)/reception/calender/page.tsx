@@ -364,13 +364,14 @@
 
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Typography } from "@/components/shared/typography";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setEditDayDrawerOpen } from "@/redux/slices/app-slice";
 import EditDayDrawer from "@/components/shared/reception/edit-drawer";
 import { availableTime } from "@/data";
+import { axiosClient } from "@/api/base";
 
 /* ---------------- TYPES ---------------- */
 type DateStatus = "available" | "unavailable" | "booked" | "exception";
@@ -396,39 +397,48 @@ export default function CalendarBooking() {
     today.getDate(),
   );
   const [selectedTime, setSelectedTime] = useState("");
+  const [apiDateStatus, setApiDateStatus] = useState<Record<number, DateStatus>>({});
 
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  /* ---------------- DATE STATUS ---------------- */
-  const dateStatus: Record<number, DateStatus> = {
-    3: "available",
-    5: "available",
-    7: "available",
-    10: "available",
-    12: "available",
-    14: "available",
-    15: "available",
-    17: "available",
-    19: "available",
-    21: "available",
-    24: "available",
-    26: "available",
-    28: "available",
+  /* ---------------- LOAD REAL BOOKINGS ---------------- */
+  useEffect(() => {
+    axiosClient
+      .get("/api/v1/bookings/doctor")
+      .then((res) => {
+        const data: any[] = res.data?.data ?? res.data ?? [];
+        if (!Array.isArray(data) || data.length === 0) return;
+        const status: Record<number, DateStatus> = {};
+        data.forEach((booking: any) => {
+          const date = new Date(booking.scheduled_at ?? booking.date ?? booking.created_at);
+          if (
+            date.getFullYear() === currentYear &&
+            date.getMonth() === currentMonth
+          ) {
+            const day = date.getDate();
+            status[day] = ["CANCELLED", "REJECTED"].includes(booking.status)
+              ? "unavailable"
+              : booking.status === "COMPLETED"
+              ? "exception"
+              : "booked";
+          }
+        });
+        setApiDateStatus(status);
+      })
+      .catch(() => {});
+  }, [currentYear, currentMonth]);
 
-    4: "unavailable",
-    11: "unavailable",
-    18: "unavailable",
-    25: "unavailable",
-
-    6: "booked",
-    13: "booked",
-    20: "booked",
-    27: "booked",
-
-    8: "exception",
-    22: "exception",
-    29: "exception",
+  /* ---------------- DATE STATUS (API or fallback mock) ---------------- */
+  const MOCK_STATUS: Record<number, DateStatus> = {
+    3: "available", 5: "available", 7: "available", 10: "available",
+    12: "available", 14: "available", 15: "available", 17: "available",
+    6: "booked", 13: "booked", 20: "booked", 27: "booked",
+    4: "unavailable", 11: "unavailable", 18: "unavailable", 25: "unavailable",
+    8: "exception", 22: "exception", 29: "exception",
   };
+
+  const dateStatus: Record<number, DateStatus> =
+    Object.keys(apiDateStatus).length > 0 ? apiDateStatus : MOCK_STATUS;
 
   /* ---------------- DYNAMIC SELECTED DATE ---------------- */
   const selectedFullDate =

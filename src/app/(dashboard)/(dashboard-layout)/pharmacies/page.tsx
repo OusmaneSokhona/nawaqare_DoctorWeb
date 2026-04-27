@@ -284,7 +284,7 @@
 
 // export default Pharmacies;
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { Typography } from "@/components/shared/typography";
 import { Button } from "@/components/shared/button";
@@ -293,35 +293,7 @@ import { pharmacyTable } from "@/data";
 import { pharmacy } from "@/types/dashboard";
 import EditPharmacyModal from "@/components/ui/modals/pharmacy-model/pharmacy";
 import { useRouter } from "next/navigation";
-// import EditPharmacyModal from "@/components/shared/modals/EditPharmacyModal"; // ✅ import modal
-
-const stats = [
-  {
-    icon: "icon-park-solid:prescription",
-    stat: "10",
-    title: "Pending prescriptions",
-  },
-  {
-    icon: "fluent:document-queue-multiple-24-filled",
-    stat: "05",
-    title: "Current load (queue)",
-  },
-  {
-    icon: "mingcute:time-fill",
-    stat: "1 hr",
-    title: "Average validation time",
-  },
-  {
-    icon: "tabler:activity",
-    stat: "23 mint",
-    title: "Last activity",
-  },
-  {
-    icon: "eos-icons:system-ok",
-    stat: "40%",
-    title: "Reliability system",
-  },
-];
+import { axiosClient } from "@/api/base";
 
 const Pharmacies = () => {
   const router = useRouter();
@@ -341,6 +313,72 @@ const Pharmacies = () => {
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState("Active");
   const [pharmacies, setPharmacies] = useState<any[]>(pharmacyTable.rowsData);
+  const [pendingCount, setPendingCount] = useState("10");
+  const [queueCount, setQueueCount] = useState("05");
+
+  useEffect(() => {
+    axiosClient
+      .get("/api/v1/pharmacy/prescriptions")
+      .then((res) => {
+        const data: any[] = res.data?.data ?? res.data ?? [];
+        if (Array.isArray(data) && data.length > 0) {
+          const pending = data.filter((p: any) =>
+            ["PENDING", "VALIDATED"].includes(p.status)
+          );
+          setPendingCount(String(pending.length));
+          setQueueCount(String(Math.min(pending.length, 99)));
+          const mapped = data.map((p: any, idx: number) => ({
+            id: idx + 1,
+            Patient: p.patient_name ?? "Patient",
+            Pharmacy: p.pharmacy_name ?? p.pharmacy?.name ?? "—",
+            Type: p.type ?? "Standard",
+            Responsible: p.dispensed_by ?? p.pharmacist_name ?? "—",
+            Location: p.pharmacy?.address ?? "—",
+            Total: p.total_items ? `${p.total_items} items` : "—",
+            Acceptance: p.status === "DISPENSED" ? "Accepted" : "Pending",
+            Date: p.created_at
+              ? new Date(p.created_at).toLocaleDateString("fr-FR")
+              : "—",
+            Status:
+              p.status === "DISPENSED"
+                ? "Active"
+                : p.status === "REJECTED"
+                ? "Inactive"
+                : "Pending",
+          }));
+          setPharmacies(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const stats = [
+    {
+      icon: "icon-park-solid:prescription",
+      stat: pendingCount,
+      title: "Pending prescriptions",
+    },
+    {
+      icon: "fluent:document-queue-multiple-24-filled",
+      stat: queueCount,
+      title: "Current load (queue)",
+    },
+    {
+      icon: "mingcute:time-fill",
+      stat: "1 hr",
+      title: "Average validation time",
+    },
+    {
+      icon: "tabler:activity",
+      stat: "23 min",
+      title: "Last activity",
+    },
+    {
+      icon: "eos-icons:system-ok",
+      stat: "40%",
+      title: "Reliability system",
+    },
+  ];
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [pharmacyToDelete, setPharmacyToDelete] = useState<pharmacy | null>(
     null,
