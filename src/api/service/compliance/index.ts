@@ -49,4 +49,11 @@ export const uploadComplianceDocument = async (
 export const getComplianceItems = async (doctorId: string): Promise<ComplianceItem[]> => {
   try {
     const response = await axiosClient.get(
-      `/api/v1/doctors/${doctorId}/compliance/ite
+      `/api/v1/doctors/${doctorId}/compliance/items`,
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching compliance items:", error);
+    throw error;
+  }
+};

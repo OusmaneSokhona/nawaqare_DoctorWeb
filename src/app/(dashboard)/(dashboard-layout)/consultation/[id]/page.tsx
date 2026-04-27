@@ -479,4 +479,3 @@ const ConsultationDetailPage: React.FC<ConsultationDetailPageProps> = ({ params 
 };
 
 export default ConsultationDetailPage;
-                                                             

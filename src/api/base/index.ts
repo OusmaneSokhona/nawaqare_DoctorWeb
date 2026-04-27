@@ -30,4 +30,6 @@ axiosClient.interceptors.response.use(
       localStorage.removeItem("access_token");
       window.location.href = "/login";
     }
-    return
+    return Promise.reject(error);
+  },
+);

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { Typography } from "@/components/shared/typography";
+import { getPatientTimeline } from "@/api/service/patient-records";
 
 type EventType = "consultation" | "prescription" | "lab" | "vaccination";
 type StatusType = "official" | "draft" | "external";
@@ -19,13 +20,34 @@ interface TimelineEvent {
   month: string;
 }
 
-const HealthTimelinePage = () => {
+const HealthTimelinePage = ({ params }: { params: { id: string } }) => {
   const [activeFilter, setActiveFilter] = useState<"all" | EventType>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState("last3months");
+  const [apiEvents, setApiEvents] = useState<any[]>([]);
+  const [apiLoading, setApiLoading] = useState(true);
 
-  // Mock timeline events
-  const allEvents: TimelineEvent[] = [
+  useEffect(() => {
+    getPatientTimeline(params.id)
+      .then((data) => setApiEvents(Array.isArray(data) ? data : []))
+      .catch(() => setApiEvents([]))
+      .finally(() => setApiLoading(false));
+  }, [params.id]);
+
+  // Map API events to local format
+  const apiMapped: TimelineEvent[] = apiEvents.map((e) => ({
+    id: e.id,
+    type: (e.type as EventType) || "consultation",
+    title: e.title || "Événement",
+    date: e.date ? new Date(e.date).toLocaleDateString("fr-FR") : "—",
+    doctorName: "NawaQare",
+    status: "official" as StatusType,
+    details: e.description || "",
+    month: e.date ? new Date(e.date).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) : "—",
+  }));
+
+  // Fallback mock timeline events
+  const allEvents: TimelineEvent[] = apiLoading || apiMapped.length === 0 ? [
     {
       id: "evt1",
       type: "consultation",
@@ -462,4 +484,3 @@ const HealthTimelinePage = () => {
 };
 
 export default HealthTimelinePage;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     

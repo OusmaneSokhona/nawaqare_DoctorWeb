@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TeamService } from './team.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -46,35 +46,5 @@ export class TeamController {
   async updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
     const teamMember = await this.teamService.updateTeamMemberStatus(id, body.status);
     return { data: teamMember };
-  }
-
-  @Patch(':id/permissions')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('DOCTOR')
-  @ApiBearerAuth('JWT')
-  @ApiOperation({ summary: 'Update team member permissions' })
-  async updatePermissions(@Param('id') id: string, @Body() body: { permissions: any }) {
-    const teamMember = await this.teamService.updateTeamMemberPermissions(id, body.permissions);
-    return { data: teamMember };
-  }
-
-  @Patch(':id/suspend')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('DOCTOR')
-  @ApiBearerAuth('JWT')
-  @ApiOperation({ summary: 'Suspend team member' })
-  async suspendMember(@Param('id') id: string) {
-    const teamMember = await this.teamService.updateTeamMemberStatus(id, 'SUSPENDED');
-    return { data: teamMember };
-  }
-
-  @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('DOCTOR')
-  @ApiBearerAuth('JWT')
-  @ApiOperation({ summary: 'Remove team member' })
-  async removeTeamMember(@Param('id') id: string) {
-    await this.teamService.removeTeamMember(id);
-    return { message: 'Team member removed successfully' };
   }
 }

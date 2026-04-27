@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { prescription } from "@/types/dashboard";
 import DataTable from "@/components/shared/data-table";
 import { prescriptionTable } from "@/data";
@@ -10,6 +10,7 @@ import { Typography } from "@/components/shared/typography";
 import Delivered from "@/components/shared/prescription/devlivered";
 import Pending from "@/components/shared/prescription/pending";
 import { Button } from "@/components/shared/button";
+import { getDoctorPrescriptions } from "@/api/service/dashboard";
 
 const stats = [
   {
@@ -116,6 +117,15 @@ const PendingDeliveriesTable = () => (
 const Prescription = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>(Tabs[0].key);
+  const [apiPrescriptions, setApiPrescriptions] = useState<any[]>([]);
+
+  useEffect(() => {
+    getDoctorPrescriptions()
+      .then((data: any) => {
+        if (Array.isArray(data) && data.length > 0) setApiPrescriptions(data);
+      })
+      .catch(() => {});
+  }, []);
 
   // Filters
   const [doctorFilter, setDoctorFilter] = useState<string>("All");

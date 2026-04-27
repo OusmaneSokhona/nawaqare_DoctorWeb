@@ -1,44 +1,36 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { paymentss } from "@/types/dashboard";
 import DataTable from "@/components/shared/data-table";
 import { paymentTable } from "@/data";
 import { Icon } from "@iconify/react";
 import { Typography } from "@/components/shared/typography";
 import { Button } from "@/components/shared/button";
-
-const stats = [
-  {
-    icon: "tdesign:undertake-transaction-filled",
-    stat: "22",
-    title: "Total Transactions",
-  },
-  {
-    icon: "mdi:tick-circle",
-    stat: "2",
-    title: "Successful",
-  },
-  {
-    icon: "carbon:close-filled",
-    stat: "5",
-    title: "Refunded",
-  },
-  {
-    icon: "fluent:money-16-filled",
-    stat: "40%",
-    title: "Total Revenue",
-  },
-  {
-    icon: "gg:dollar",
-    stat: "$456",
-    title: "Platform Earnings",
-  },
-];
+import { getDoctorPayments } from "@/api/service/dashboard";
 
 const PaymentsPage = () => {
   const router = useRouter();
+  const [apiSummary, setApiSummary] = useState<any>(null);
+  const [apiPayments, setApiPayments] = useState<any[]>([]);
+
+  useEffect(() => {
+    getDoctorPayments()
+      .then((data: any) => {
+        if (data?.summary) setApiSummary(data.summary);
+        if (Array.isArray(data?.payments)) setApiPayments(data.payments);
+      })
+      .catch(() => {});
+  }, []);
+
+  const stats = [
+    { icon: "tdesign:undertake-transaction-filled", stat: apiSummary?.total_transactions ?? "—", title: "Total Transactions" },
+    { icon: "mdi:tick-circle", stat: apiSummary?.total_captured ?? "—", title: "Successful" },
+    { icon: "carbon:close-filled", stat: apiSummary?.refunded ?? "—", title: "Refunded" },
+    { icon: "fluent:money-16-filled", stat: apiSummary?.pending ?? "—", title: "Pending" },
+    { icon: "gg:dollar", stat: apiSummary?.balance_xof ? `${apiSummary.balance_xof.toLocaleString()} FCFA` : "—", title: "Total Capturé" },
+  ];
 
   // Filters
   const [statusFilter, setStatusFilter] = useState("Status");

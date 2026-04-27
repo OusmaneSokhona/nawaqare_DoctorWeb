@@ -32,14 +32,8 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, IApiResponse<T
           };
         }
 
-        // Already wrapped by controller with { data: ... } — just add meta
-        if ('data' in data) {
-          return {
-            ...data,
-            meta: {
-              timestamp: now,
-            },
-          };
+        if ('data' in data && 'meta' in data) {
+          return data;
         }
 
         return {

@@ -1,113 +1,12 @@
-// "use client";
-
-// import ChatList from "@/components/shared/chats/chat-list";
-// import ChatWindow from "@/components/shared/chats/chat-window";
-// import { useState } from "react";
-// // import ChatList from "@/components/chat/ChatList";
-// // import ChatWindow from "@/components/chat/ChatWindow";
-
-// export default function ChatPage() {
-//   const [selectedUser, setSelectedUser] = useState<any>(null);
-
-//   return (
-//     <div className="h-screen flex bg-gray-100">
-//       <ChatList onSelect={setSelectedUser} />
-
-//       {selectedUser ? (
-//         <ChatWindow user={selectedUser} />
-//       ) : (
-//         <div className="flex-1 flex items-center justify-center text-gray-400">
-//           Select a chat to start messaging
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-// "use client";
-
-// import ChatList from "@/components/shared/chats/chat-list";
-// import ChatWindow from "@/components/shared/chats/chat-window";
-// import { useState } from "react";
-// // import ChatList from "@/components/chat/ChatList";
-// // import ChatWindow from "@/components/chat/ChatWindow";
-
-// type Message = {
-//   id: number;
-//   text: string;
-//   sender: "me" | "other";
-// };
-
-// export default function ChatPage() {
-//   const [selectedUser, setSelectedUser] = useState<any>(null);
-
-//   const [chats, setChats] = useState<Record<number, Message[]>>({
-//     1: [
-//       { id: 1, text: "Hello Alex 👋", sender: "other" },
-//       { id: 2, text: "Today appointment at 5pm", sender: "other" },
-//     ],
-//     2: [
-//       { id: 1, text: "Hi there!", sender: "other" },
-//     ],
-//   });
-
-// //   const sendMessage = (userId: number, text: string) => {
-// //     setChats((prev) => ({
-// //       ...prev,
-// //       [userId]: [
-// //         ...(prev[userId] || []),
-// //         { id: Date.now(), text, sender: "me" },
-// //       ],
-// //     }));
-// //   };
-// const sendMessage = (userId: number, text: string) => {
-//   // My message
-//   setChats((prev) => ({
-//     ...prev,
-//     [userId]: [
-//       ...(prev[userId] || []),
-//       { id: Date.now(), text, sender: "me" },
-//     ],
-//   }));
-
-//   // Auto reply (after delay)
-//   setTimeout(() => {
-//     setChats((prev) => ({
-//       ...prev,
-//       [userId]: [
-//         ...(prev[userId] || []),
-//         {
-//           id: Date.now() + 1,
-//           text: "Sure 👍 I will get back to you shortly.",
-//           sender: "other",
-//         },
-//       ],
-//     }));
-//   }, 800); // WhatsApp-like delay
-// };
-
-//   return (
-//     <div className="h-screen flex bg-gray-100">
-//       <ChatList onSelect={setSelectedUser} />
-
-//       {selectedUser ? (
-//         <ChatWindow
-//           user={selectedUser}
-//           messages={chats[selectedUser.id] || []}
-//           onSend={sendMessage}
-//         />
-//       ) : (
-//         <div className="flex-1 flex items-center bg-white rounded-xl justify-center text-gray-400">
-//           Select a chat to start messaging
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
 "use client";
 
-import ChatList from "@/components/shared/chats/chat-list";
+import ChatList, { ChatUser } from "@/components/shared/chats/chat-list";
 import ChatWindow from "@/components/shared/chats/chat-window";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  getConversationMessages,
+  sendConversationMessage,
+} from "@/api/service/conversations";
 
 type Message = {
   id: number;
@@ -116,38 +15,67 @@ type Message = {
 };
 
 export default function ChatPage() {
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const [chats, setChats] = useState<Record<number, Message[]>>({
-    1: [
-      { id: 1, text: "Hello Alex 👋", sender: "other" },
-      { id: 2, text: "Today appointment at 5pm", sender: "other" },
-    ],
-    2: [{ id: 1, text: "Hi there!", sender: "other" }],
-  });
+  // Load messages when a conversation is selected
+  useEffect(() => {
+    if (!selectedUser?.conversationId) {
+      // If no real conversationId, use local mock messages
+      setMessages([
+        { id: 1, text: "Hello 👋", sender: "other" },
+        { id: 2, text: "Today appointment at 5pm", sender: "other" },
+      ]);
+      return;
+    }
 
-  const sendMessage = (userId: number, text: string) => {
-    setChats((prev) => ({
-      ...prev,
-      [userId]: [
-        ...(prev[userId] || []),
-        { id: Date.now(), text, sender: "me" },
-      ],
-    }));
+    setLoading(true);
+    getConversationMessages(selectedUser.conversationId)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: Message[] = data.map((m) => ({
+            id: typeof m.id === "number" ? m.id : Date.now(),
+            text: m.content,
+            sender: "other" as const, // We don't have currentUserId here easily, default to "other"
+          }));
+          setMessages(mapped);
+        } else {
+          setMessages([]);
+        }
+      })
+      .catch(() => {
+        setMessages([
+          { id: 1, text: "Hello 👋", sender: "other" },
+          { id: 2, text: "Today appointment at 5pm", sender: "other" },
+        ]);
+      })
+      .finally(() => setLoading(false));
+  }, [selectedUser]);
 
-    setTimeout(() => {
-      setChats((prev) => ({
-        ...prev,
-        [userId]: [
-          ...(prev[userId] || []),
+  const sendMessage = (userId: number | string, text: string) => {
+    // Optimistically add message
+    const newMsg: Message = { id: Date.now(), text, sender: "me" };
+    setMessages((prev) => [...prev, newMsg]);
+
+    // If we have a real conversation, send via API
+    if (selectedUser?.conversationId) {
+      sendConversationMessage(selectedUser.conversationId, text).catch(
+        () => {}
+      );
+    } else {
+      // Mock auto-reply
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
           {
             id: Date.now() + 1,
             text: "Sure 👍 I will get back to you shortly.",
             sender: "other",
           },
-        ],
-      }));
-    }, 800);
+        ]);
+      }, 800);
+    }
   };
 
   return (
@@ -158,7 +86,7 @@ export default function ChatPage() {
           selectedUser ? "hidden md:block" : "block max-md:w-full"
         }`}
       >
-        <ChatList onSelect={setSelectedUser} />
+        <ChatList onSelect={(user) => setSelectedUser(user)} />
       </div>
 
       {/* Chat Window */}
@@ -166,7 +94,7 @@ export default function ChatPage() {
         {selectedUser ? (
           <ChatWindow
             user={selectedUser}
-            messages={chats[selectedUser.id] || []}
+            messages={messages}
             onSend={sendMessage}
             onBack={() => setSelectedUser(null)}
           />

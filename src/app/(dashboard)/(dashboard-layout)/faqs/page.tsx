@@ -2,506 +2,336 @@
 import React, { useState } from "react";
 import { Icon } from "@iconify/react";
 import { Typography } from "@/components/shared/typography";
-import EditFaqModal from "@/components/ui/modals/faqs-model/EditFaq";
 import { Button } from "@/components/shared/button";
-import { useRouter } from "next/navigation";
 
-const FAQS = () => {
-  const [faqs, setFaqs] = useState([
-    // ---------------- Video Call ----------------
-    {
-      id: "1",
-      title: "Video call not working?",
-      desc: "Please check your internet connection and ensure camera and microphone permissions are enabled in your browser settings.",
-      status: "Active",
-      category: "Video Call",
-    },
-    {
-      id: "2",
-      title: "Can I switch from video to audio during consultation?",
-      desc: "Yes, you can turn off your camera anytime and continue the session using audio only.",
-      status: "Active",
-      category: "Video Call",
-    },
-    {
-      id: "3",
-      title: "What if the doctor doesn’t join the call?",
-      desc: "If the doctor fails to join within 10 minutes of the scheduled time, you may reschedule or request a refund.",
-      status: "Active",
-      category: "Video Call",
-    },
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+}
 
-    // ---------------- Prescriptions ----------------
-    {
-      id: "4",
-      title: "How do prescriptions work?",
-      desc: "Prescriptions are issued digitally after consultation and can be downloaded from your account dashboard.",
-      status: "Active",
-      category: "Prescriptions",
-    },
-    {
-      id: "5",
-      title: "Can I use the prescription at any pharmacy?",
-      desc: "Yes, our digital prescriptions are valid at licensed pharmacies unless otherwise stated by the doctor.",
-      status: "Active",
-      category: "Prescriptions",
-    },
-    {
-      id: "6",
-      title: "How long is a prescription valid?",
-      desc: "Prescription validity depends on the medication and local regulations. Please consult the issued document for expiry details.",
-      status: "Active",
-      category: "Prescriptions",
-    },
+interface ReportIssueForm {
+  type: string;
+  consultation: string;
+  description: string;
+}
 
-    // ---------------- Payments ----------------
-    {
-      id: "7",
-      title: "How do payments work?",
-      desc: "Payments are processed securely through our encrypted payment gateway using supported cards and online methods.",
-      status: "Active",
-      category: "Payments",
-    },
-    {
-      id: "8",
-      title: "Can I get a refund?",
-      desc: "Refunds are available for cancelled appointments based on our cancellation policy.",
-      status: "Active",
-      category: "Payments",
-    },
-    {
-      id: "9",
-      title: "Why was my payment declined?",
-      desc: "Payments may be declined due to insufficient balance, incorrect card details, or bank restrictions.",
-      status: "Active",
-      category: "Payments",
-    },
+// ─── Data ─────────────────────────────────────────────────────────────────────
+const FAQ_CATEGORIES = ["All", "Medical", "Prescriptions", "Payments", "Legal & Compliance", "Account & Security"];
 
-    // ---------------- Legal & Compliance ----------------
-    {
-      id: "10",
-      title: "Is my medical data secure?",
-      desc: "Yes, all personal and medical data is encrypted and stored according to healthcare data protection regulations.",
-      status: "Active",
-      category: "Legal & Compliance",
-    },
-    {
-      id: "11",
-      title: "Do you comply with healthcare regulations?",
-      desc: "Yes, our platform complies with applicable healthcare and data protection laws.",
-      status: "Active",
-      category: "Legal & Compliance",
-    },
+const FAQS: FAQ[] = [
+  { id: "1", category: "Medical", question: "Are certificates internationally recognized?", answer: "Yes, our certificates are recognized and accepted across multiple countries and regions. They are produced in accordance with recognized standards and can be used for professional, academic, or regulatory purposes, depending on the specific program or issuing authority." },
+  { id: "2", category: "Medical", question: "How do I lose a medical document during a video consultation?", answer: "All medical documents shared during a consultation are automatically saved to your secure patient portal. You can access and download them at any time from your profile under 'Medical Documents'." },
+  { id: "3", category: "Medical", question: "What happens if a video call fails during a consultation?", answer: "If a video call fails, both parties receive an automatic notification. The consultation can be resumed within 10 minutes. If the issue persists, you can switch to an audio-only call or reschedule at no extra cost." },
+  { id: "4", category: "Medical", question: "What if the patient didn't give consent? Can I still add a clinical note after the call?", answer: "Clinical notes require patient consent. If consent was not obtained during the call, you must obtain it separately before adding any clinical notes. Please use the consent request feature in the patient's profile." },
+  { id: "5", category: "Medical", question: "Is the consultation legally covered?", answer: "Yes, all consultations conducted through NawaQare are legally covered under the applicable digital health regulations in Senegal. Our platform complies with GDPR and local health data protection laws." },
+  { id: "6", category: "Medical", question: "Can I prescribe without finishing the call?", answer: "No, prescriptions can only be issued after a consultation session has been properly completed and documented. This ensures patient safety and legal compliance." },
+  { id: "7", category: "Medical", question: "What happens if a video call fails during a consultation?", answer: "You will receive an alert and the session will be marked as interrupted. You can attempt to reconnect within 5 minutes or reschedule the consultation from the bookings section." },
+  { id: "8", category: "Prescriptions", question: "Can I issue prescriptions for controlled substances?", answer: "Controlled substance prescriptions require additional verification steps and are subject to local regulations. Please ensure you have the necessary certifications before prescribing such medications through the platform." },
+  { id: "9", category: "Prescriptions", question: "How long are digital prescriptions valid?", answer: "Digital prescriptions are valid for 90 days from the date of issue, unless otherwise specified by the prescribing doctor. The patient receives an automatic reminder before expiry." },
+  { id: "10", category: "Prescriptions", question: "Can a patient request a prescription refill?", answer: "Yes, patients can request a refill through their patient portal. You will receive a notification and can approve or decline the request. Refills are subject to your clinical judgment." },
+  { id: "11", category: "Payments", question: "When do I receive my payouts?", answer: "Payouts are processed weekly, every Monday, to your registered bank account. The minimum payout amount is 10,000 FCFA. You can view your payout schedule and history in the Earnings section." },
+  { id: "12", category: "Payments", question: "What is the platform fee?", answer: "NawaQare charges a 15% platform fee on each completed consultation. This covers payment processing, platform maintenance, compliance, and customer support." },
+  { id: "13", category: "Payments", question: "What happens if a patient disputes a payment?", answer: "Disputed payments are placed on hold while our support team investigates. You will be notified of any dispute and asked to provide documentation. Resolution typically takes 5–7 business days." },
+  { id: "14", category: "Legal & Compliance", question: "What happens if my medical license expires?", answer: "You will receive reminders 60, 30, and 7 days before expiry. Once expired, your ability to conduct consultations will be suspended until the license is renewed and verified by our compliance team." },
+  { id: "15", category: "Legal & Compliance", question: "Is patient data stored securely?", answer: "Yes, all patient data is encrypted at rest and in transit using AES-256 and TLS 1.3. We comply with GDPR and local Senegalese health data regulations. Data is never shared with third parties without explicit consent." },
+  { id: "16", category: "Account & Security", question: "How do I enable two-factor authentication?", answer: "Go to Profile → Privacy & Security → Two-Factor Authentication. You can enable it via SMS or an authenticator app. We strongly recommend enabling 2FA for all accounts." },
+  { id: "17", category: "Account & Security", question: "What should I do if I suspect unauthorized access to my account?", answer: "Immediately change your password and contact our support team at support@nawaqare.sn. We can suspend your account temporarily and run a security audit while you regain secure access." },
+];
 
-    // ---------------- Account & Security ----------------
-    {
-      id: "12",
-      title: "How do I reset my password?",
-      desc: "Click on 'Forgot Password' on the login page and follow the instructions sent to your registered email.",
-      status: "Active",
-      category: "Account & Security",
-    },
-    {
-      id: "13",
-      title: "How can I update my profile information?",
-      desc: "You can update your personal details from the Account Settings section in your dashboard.",
-      status: "Active",
-      category: "Account & Security",
-    },
-    {
-      id: "14",
-      title: "How do I delete my account?",
-      desc: "To permanently delete your account, please contact support or use the delete option available in account settings.",
-      status: "Active",
-      category: "Account & Security",
-    },
-  ]);
+const QUICK_HELP_ITEMS = [
+  { icon: "mdi:video-outline", label: "Video call issues", color: "text-blue-500", bg: "bg-blue-50" },
+  { icon: "mdi:prescription", label: "Prescriptions & signing", color: "text-green-500", bg: "bg-green-50" },
+  { icon: "mdi:calendar-check-outline", label: "Appointments & agenda", color: "text-purple-500", bg: "bg-purple-50" },
+  { icon: "mdi:currency-usd", label: "Payments & payouts", color: "text-yellow-600", bg: "bg-yellow-50" },
+  { icon: "mdi:file-document-outline", label: "Medical documents & reports", color: "text-red-500", bg: "bg-red-50" },
+  { icon: "mdi:shield-lock-outline", label: "Security & access", color: "text-indigo-500", bg: "bg-indigo-50" },
+  { icon: "mdi:cog-outline", label: "Account & settings", color: "text-gray-500", bg: "bg-gray-100" },
+];
 
-  const TABS = [
-    "All",
-    "Video Call",
-    "Prescriptions",
-    "Payments",
-    "Legal & Compliance",
-    "Account & Security",
-  ];
+const ISSUE_TYPES = [
+  "Select a bug",
+  "Video Call Issue",
+  "Prescription Problem",
+  "Payment Issue",
+  "Account Access",
+  "Technical Bug",
+  "Other",
+];
 
-  const [activeTab, setActiveTab] = useState("All");
+// ─── Component ────────────────────────────────────────────────────────────────
+const HelpCenter = () => {
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [openFaqId, setOpenFaqId] = useState<string | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [selectedQuickHelp, setSelectedQuickHelp] = useState<string | null>(null);
+  const [reportForm, setReportForm] = useState<ReportIssueForm>({ type: "", consultation: "", description: "" });
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState(false);
 
-  const quickData = [
-    {
-      icon: "material-symbols:video-call-rounded",
-      title: "Video call issues",
-    },
-    {
-      icon: "mingcute:prescription-fill",
-      title: "Prescriptions & signing",
-    },
-    {
-      icon: "streamline:waiting-appointments-calendar-solid",
-      title: "Appointments & agenda",
-    },
-    {
-      icon: "material-symbols:payments",
-      title: "Payments & payouts",
-    },
-    {
-      icon: "solar:document-bold",
-      title: " Medical documents & reports",
-    },
-    {
-      icon: "material-symbols:lock",
-      title: "Security & access",
-    },
-    {
-      icon: "weui:setting-filled",
-      title: " Account & settings",
-    },
-  ];
+  const filteredFaqs = activeCategory === "All"
+    ? FAQS
+    : FAQS.filter((f) => f.category === activeCategory);
 
-  const stats = [
-    { icon: "ic-baseline-phone", stat: "Phone", title: "03 5432 1234" },
-    { icon: "ic-baseline-email", stat: "Email", title: "Abc@gmail.com" },
-    // { icon: "material-symbols:draft", stat: "5", title: "Most Viewed FAQ" },
-    // { icon: "material-symbols:update", stat: "40%", title: "Helpful" },
-  ];
-
-  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
-  const [openfaq, setOpenfaq] = useState<number | null>(null);
-  const [isOpenEditFaq, setIsOpenEditFaq] = useState<boolean>(false);
-  const [editingFaq, setEditingFaq] = useState<number | null>(null);
-  const router = useRouter();
-
-  const [statusFilter, setStatusFilter] = useState("");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  // NEW: Three dots dropdown state per row
-  const [openDropdown, setOpenDropdown] = useState<number | null>(null);
-
-  const onClose = () => {
-    setIsOpenEditFaq(false);
-    setEditingFaq(null);
-  };
-
-  // const handleSaveFaq = (question: string, answer: string, status: string, id:string) => {
-  //   if (modalMode === "add") {
-  //     setFaqs((prev) => [...prev, { title: question, desc: answer, status,id }]);
-  //   } else if (modalMode === "edit" && editingFaq !== null) {
-  //     setFaqs((prev) =>
-  //       prev.map((faq, i) =>
-  //         i === editingFaq ? { title: question, desc: answer, status,id } : faq
-  //       )
-  //     );
-  //   }
-  //   onClose();
-  // };
-
-  // const handleSaveFaq = (question: string, answer: string, status: string) => {
-  //   if (modalMode === "add") {
-  //     setFaqs((prev) => [
-  //       ...prev,
-  //       {
-  //         id: String(Date.now()), // Generate unique id
-  //         title: question,
-  //         desc: answer,
-  //         status,
-  //       },
-  //     ]);
-  //   } else if (modalMode === "edit" && editingFaq !== null) {
-  //     setFaqs((prev) =>
-  //       prev.map((faq, i) =>
-  //         i === editingFaq
-  //           ? {
-  //               ...faq,
-  //               title: question,
-  //               desc: answer,
-  //               status,
-  //             }
-  //           : faq,
-  //       ),
-  //     );
-  //   }
-
-  //   onClose();
-  // };
-
-  const statusOptions = ["All", "Active", "InActive"];
-  const filteredFaqs = faqs.filter((faq) => {
-    const statusMatch = statusFilter ? faq.status === statusFilter : true;
-
-    const categoryMatch = activeTab === "All" || faq.category === activeTab;
-
-    return statusMatch && categoryMatch;
-  });
-
-  const handleStatusSelect = (status: string) => {
-    setStatusFilter(status === "All" ? "" : status);
-    setIsDropdownOpen(false);
+  const handleReportSubmit = async () => {
+    setReportSubmitting(true);
+    await new Promise((r) => setTimeout(r, 1000));
+    setReportSubmitting(false);
+    setReportSuccess(true);
+    setTimeout(() => {
+      setShowReportModal(false);
+      setReportSuccess(false);
+      setReportForm({ type: "", consultation: "", description: "" });
+    }, 2000);
   };
 
   return (
-    <div className="">
+    <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex max-md:flex-col max-md:items-start max-md:gap-3 justify-between items-center">
-        {/* <div>
-          <Typography size="h3" as="h3">
-            Help Center
-          </Typography>
-          <Typography size="lg" className="text-desc-color">
-            Find answers, guides, and support to help you use the platform with
-            ease.
-          </Typography>
-        </div> */}
-
-        {/* <div className="flex items-center gap-2">
-          <div className="relative">
-            <Button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className=" rounded-lg bg-border-color flex items-center justify-center cursor-pointer"
-            >
-              <Typography>{statusFilter || "Status"}</Typography>
-              <Icon icon="mdi:chevron-down" width="16" height="16" className="ml-2" />
-            </Button>
-
-            {isDropdownOpen && (
-              <div className="absolute top-full mt-1 bg-white border border-gray-300 rounded shadow-lg z-10">
-                {statusOptions.map((option) => (
-                  <div
-                    key={option}
-                    onClick={() => handleStatusSelect(option)}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    <Typography>{option}</Typography>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <Button
-            className="flex items-center justify-center w-[180px] bg-primary-dark rounded-lg text-white cursor-pointer"
-            onClick={() => {
-              setModalMode("add");
-              setIsOpenEditFaq(true);
-            }}
-          >
-            <Icon icon="tdesign:plus" width="24" height="24" />
-            <Typography className="text-white">Add FAQ’s</Typography>
-          </Button>
-        </div> */}
-      </div>
-
-      {/* Stats */}
-      {/* <div className="pt-5 flex flex-wrap gap-5 items-center">
-        {stats.map((activity, i) => (
-          <div
-            key={i}
-            className="bg-white shadow-md w-[190px] rounded-2xl p-4 space-y-3 max-sm:w-full max-sm:text-center"
-          >
-            <div className="rounded-full bg-primary-color h-11 w-11 flex justify-center items-center max-sm:mx-auto">
-              <Icon
-                icon={activity.icon}
-                width="24"
-                height="24"
-                className="text-white"
-              />
-            </div>
-            <Typography size="h4" as="h4">
-              {activity.stat}
-            </Typography>
-            <Typography>{activity.title}</Typography>
-          </div>
-        ))}
-      </div> */}
-      <div className="bg-white rounded-xl p-6 mt-4">
-        <Typography size="h5" className="text-[#2c2c2c] font-semibold">
-          Consultation payment
-        </Typography>
-        <Typography className="text-desc-color font-medium pt-1">
-          Appointment id:Adp-1234567
-        </Typography>
-        <div className="flex max-md:flex-col gap-5 mt-6">
-          <div
-            className="basis-[50%]  transition-all duration-300 ease-in-out
-        hover:-translate-y-3 hover:shadow-xl
-        cursor-pointer border space-y-1 rounded-xl px-5 py-5"
-          >
-            <div className="bg-primary-color flex items-center justify-center w-[40px] h-[40px] rounded-full">
-              <Icon
-                className="text-white"
-                icon="ic:baseline-phone"
-                width={24}
-                height={24}
-              />
-            </div>
-            <Typography size="lg" className="font-semibold text-[#2c2c2c]">
-              Phone
-            </Typography>
-            <Typography size="md" className="font-semibold text-[#2c2c2c]">
-              03 5432 1234
-            </Typography>
-            <Typography size="md" className="font-semibold text-[#2c2c2c]">
-              Reply in : 5mint
-            </Typography>
-          </div>
-          <div
-            className="basis-[50%]  transition-all duration-300 ease-in-out
-        hover:-translate-y-3 hover:shadow-xl
-        cursor-pointer border space-y-1 rounded-xl px-5 py-5"
-          >
-            <div className="bg-primary-color flex items-center justify-center w-[40px] h-[40px] rounded-full">
-              <Icon
-                className="text-white"
-                icon="ic:baseline-email"
-                width={24}
-                height={24}
-              />
-            </div>
-            <Typography size="lg" className="font-semibold text-[#2c2c2c]">
-              Email
-            </Typography>
-            <Typography size="md" className="font-semibold text-[#2c2c2c]">
-              Abc@gmail.com
-            </Typography>
-            <Typography size="md" className="font-semibold text-[#2c2c2c] pb-3">
-              Reply in : 5mint
-            </Typography>
-            <div className="bg-primary-color flex items-center justify-center rounded-xl py-3">
-              <Typography className="text-white font-medium">
-                Contact Support
-              </Typography>
-            </div>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <Typography variant="h4" className="text-text-color1 font-semibold">Help Center</Typography>
+          <Typography variant="p" className="text-text-color3 text-sm mt-1">Find answers and get support</Typography>
         </div>
-      </div>
-      {/* <div className="flex flex-wrap gap-5 mt-5 bg-white rounded-xl p-6">
-          {quickData.map((d,i)=>(
-            <div key={i} className="flex flex-col items-center gap-3  justify-center border rounded-xl w-[360px] h-[180px] max-md:w-full max-md:h-auto">
-               <Icon
-                icon={d.icon}
-                width="24"
-                height="24"
-                className="text-primary-color"
-              />
-              <Typography size="h5" className="text-[#2c2c2c] font-medium">{d.title}</Typography>
-              <Typography className="text-primary-color font-semibold underline">View Detail</Typography>
-            </div>
-          ))}
-        </div> */}
-      <div className="mt-5 bg-white rounded-xl p-6">
-        <Typography size="h5" className="text-[#2c2c2c] font-semibold">
-          Quick Help
-        </Typography>
-        <div
-          className="grid grid-cols-4 gap-6 mt-6 
-                max-xl:grid-cols-3
-                max-lg:grid-cols-2
-                max-md:grid-cols-1"
+        <Button
+          onClick={() => setShowReportModal(true)}
+          className="flex items-center gap-2 bg-primary-color text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition"
         >
-          {quickData.map((d, i) => (
-            <div
-              key={i}
-              className="flex flex-col items-center justify-center gap-3
-                 border rounded-xl h-[180px] transition-all duration-300 ease-in-out
-        hover:-translate-y-3 hover:shadow-xl
-        cursor-pointer"
-            >
-              <Icon
-                icon={d.icon}
-                width="24"
-                height="24"
-                className="text-primary-color"
-              />
-
-              <Typography size="h5" className="text-[#2c2c2c] font-medium">
-                {d.title}
-              </Typography>
-
-              <Typography className="text-primary-color font-semibold underline">
-                View Detail
-              </Typography>
-            </div>
-          ))}
-        </div>
+          <Icon icon="mdi:alert-circle-outline" width={16} />
+          Report an Issue
+        </Button>
       </div>
 
-      {/* FAQ List */}
-      <div className="flex flex-col gap-5 rounded-xl bg-white p-8 max-md:p-3 mt-7">
-        <Typography size={"h5"} as={"h5"}>
-          FAQS
+      {/* Contact Card */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <Typography variant="h6" className="text-text-color1 font-semibold mb-1">Consultation payment</Typography>
+        <Typography variant="p" className="text-text-color3 text-sm mb-4">
+          Appointment by Alex Martin — <span className="text-primary-color font-medium">Online · Sent</span>
         </Typography>
-        {/* FAQ Header & Category Tabs */}
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-3 mb-6 border-b pb-4">
-          {TABS.map((tab) => (
+        <div className="flex flex-wrap gap-8 items-center mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <Icon icon="mdi:phone-outline" className="text-primary-color" width={20} />
+            </div>
+            <div>
+              <Typography variant="p" className="text-text-color3 text-xs">Phone</Typography>
+              <Typography variant="p" className="text-text-color1 font-medium text-sm">03 5012 1234</Typography>
+              <Typography variant="p" className="text-text-color3 text-xs">Reply in · 24 Hours</Typography>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <Icon icon="mdi:email-outline" className="text-primary-color" width={20} />
+            </div>
+            <div>
+              <Typography variant="p" className="text-text-color3 text-xs">Email</Typography>
+              <Typography variant="p" className="text-text-color1 font-medium text-sm">support@nawaqare.sn</Typography>
+              <Typography variant="p" className="text-text-color3 text-xs">Reply in · 24 Hours</Typography>
+            </div>
+          </div>
+          <button className="ml-auto bg-primary-color text-white px-5 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">
+            Contact Support
+          </button>
+        </div>
+
+        {/* Quick Help */}
+        <div className="mt-6">
+          <Typography variant="h6" className="text-text-color1 font-semibold mb-3">Quick Help</Typography>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {QUICK_HELP_ITEMS.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => setSelectedQuickHelp(selectedQuickHelp === item.label ? null : item.label)}
+                className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all text-center ${
+                  selectedQuickHelp === item.label
+                    ? "border-primary-color bg-blue-50"
+                    : "border-gray-100 bg-gray-50 hover:border-primary-color hover:bg-blue-50"
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-full ${item.bg} flex items-center justify-center`}>
+                  <Icon icon={item.icon} className={item.color} width={20} />
+                </div>
+                <Typography variant="p" className="text-text-color1 text-xs font-medium leading-tight">{item.label}</Typography>
+                <span className="text-primary-color text-xs underline">View Detail</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick Help expanded detail */}
+        {selectedQuickHelp && (
+          <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+            <div className="flex items-center justify-between mb-3">
+              <Typography variant="h6" className="text-text-color1 font-semibold">{selectedQuickHelp}</Typography>
+              <button onClick={() => setSelectedQuickHelp(null)}>
+                <Icon icon="mdi:close" className="text-text-color3" width={18} />
+              </button>
+            </div>
+            {FAQS.slice(0, 5).map((faq) => (
+              <div key={faq.id} className="border-b border-blue-100 last:border-0">
+                <button
+                  onClick={() => setOpenFaqId(openFaqId === `quick-${faq.id}` ? null : `quick-${faq.id}`)}
+                  className="w-full text-left flex items-center justify-between py-2.5"
+                >
+                  <Typography variant="p" className="text-text-color1 text-sm">{faq.question}</Typography>
+                  <Icon icon={openFaqId === `quick-${faq.id}` ? "mdi:chevron-up" : "mdi:chevron-down"} className="text-text-color3 flex-shrink-0 ml-2" width={18} />
+                </button>
+                {openFaqId === `quick-${faq.id}` && (
+                  <Typography variant="p" className="text-text-color3 text-sm pb-2 px-1">{faq.answer}</Typography>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* FAQs Section */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <Typography variant="h6" className="text-text-color1 font-semibold mb-4">FAQ&apos;s</Typography>
+
+        {/* Category Tabs */}
+        <div className="flex flex-wrap gap-2 mb-5 border-b border-gray-100 pb-4">
+          {FAQ_CATEGORIES.map((cat) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all
-        ${
-          activeTab === tab
-            ? "bg-primary-color text-white"
-            : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-        }`}
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                activeCategory === cat
+                  ? "bg-primary-color text-white"
+                  : "bg-gray-100 text-text-color3 hover:bg-gray-200"
+              }`}
             >
-              {tab}
+              {cat}
             </button>
           ))}
         </div>
 
-        {filteredFaqs.map((d, i) => (
-          <div key={i} className="rounded-xl shadow-sm border px-5 py-4">
-            {/* Top Row */}
-            <div className="flex justify-between items-center">
-              {/* Title */}
-              <div
-                onClick={() => setOpenfaq(openfaq === i ? null : i)}
-                className="flex items-center gap-2 cursor-pointer"
+        {/* FAQ Accordion */}
+        <div className="space-y-2">
+          {filteredFaqs.map((faq, index) => (
+            <div key={faq.id} className="border border-gray-100 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setOpenFaqId(openFaqId === faq.id ? null : faq.id)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition"
               >
-                <Typography size="md" as="h4" className="font-medium">
-                  {d.title}
+                <Typography variant="p" className="text-text-color1 text-sm font-medium">
+                  {index + 1}. {faq.question}
                 </Typography>
-
-                {/* <Icon
-                  icon="uim:angle-down"
-                  width="24"
-                  className={`transition-transform ${
-                    openfaq === i ? "rotate-180 text-secondary-color" : "text-secondary-color"
-                  }`}
-                /> */}
-              </div>
-              <Icon
-                onClick={() => setOpenfaq(openfaq === i ? null : i)}
-                icon="uim:angle-down"
-                width="24"
-                className={`transition-transform ${
-                  openfaq === i ? "rotate-180" : ""
-                }`}
-              />
+                <Icon
+                  icon={openFaqId === faq.id ? "mdi:chevron-up" : "mdi:chevron-down"}
+                  className="text-text-color3 flex-shrink-0 ml-3"
+                  width={20}
+                />
+              </button>
+              {openFaqId === faq.id && (
+                <div className="px-4 pb-4 bg-gray-50">
+                  <Typography variant="p" className="text-text-color3 text-sm leading-relaxed">
+                    {faq.answer}
+                  </Typography>
+                </div>
+              )}
             </div>
+          ))}
+        </div>
 
-            {/* Answer */}
-            {openfaq === i && (
-              <Typography className="pt-3 font-medium text-desc-color">
-                {d.desc}
-              </Typography>
-            )}
+        {/* Footer note */}
+        <div className="mt-6 flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <Icon icon="mdi:shield-check-outline" className="text-green-500" width={16} />
+            <Typography variant="p" className="text-text-color3 text-xs">Support access is logged for compliance</Typography>
           </div>
-        ))}
+          <div className="flex items-center gap-2">
+            <Icon icon="mdi:lock-outline" className="text-red-400" width={16} />
+            <Typography variant="p" className="text-text-color3 text-xs">Medical data is never shared via email</Typography>
+          </div>
+        </div>
       </div>
 
-      {/* Modal */}
-      {/* <EditFaqModal
-        onClose={onClose}
-        isOpen={isOpenEditFaq}
-        title={modalMode === "add" ? "Add FAQ" : "Edit FAQ"}
-        onSave={handleSaveFaq}
-        initialQuestion={editingFaq !== null ? faqs[editingFaq].title : ""}
-        initialAnswer={editingFaq !== null ? faqs[editingFaq].desc : ""}
-        initialStatus={editingFaq !== null ? faqs[editingFaq].status : "Active"}
-      /> */}
+      {/* ─── Report an Issue Modal ─── */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <Typography variant="h6" className="text-text-color1 font-semibold">Report An Issue</Typography>
+              <button
+                onClick={() => { setShowReportModal(false); setReportSuccess(false); }}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition"
+              >
+                <Icon icon="mdi:close" width={18} className="text-text-color3" />
+              </button>
+            </div>
+
+            {reportSuccess ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+                  <Icon icon="mdi:check-circle" className="text-green-500" width={36} />
+                </div>
+                <Typography variant="h6" className="text-text-color1 font-semibold">Issue Reported!</Typography>
+                <Typography variant="p" className="text-text-color3 text-sm mt-1">
+                  Our support team will get back to you within 24 hours.
+                </Typography>
+              </div>
+            ) : (
+              <div className="p-5 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-color1 mb-1">Type of Issue</label>
+                  <select
+                    value={reportForm.type}
+                    onChange={(e) => setReportForm({ ...reportForm, type: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-text-color1 focus:outline-none focus:border-primary-color bg-white"
+                  >
+                    {ISSUE_TYPES.map((t) => <option key={t} value={t === "Select a bug" ? "" : t}>{t}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-color1 mb-1">Consultation</label>
+                  <select
+                    value={reportForm.consultation}
+                    onChange={(e) => setReportForm({ ...reportForm, consultation: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-text-color1 focus:outline-none focus:border-primary-color bg-white"
+                  >
+                    <option value="">Consultation Id — Select appointment</option>
+                    <option value="CON-001">CON-001 — Sarah Johnson (Apr 25, 2026)</option>
+                    <option value="CON-002">CON-002 — Alex Martin (Apr 22, 2026)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-color1 mb-1">Description</label>
+                  <textarea
+                    rows={4}
+                    value={reportForm.description}
+                    onChange={(e) => setReportForm({ ...reportForm, description: e.target.value })}
+                    placeholder="Please describe what you are experiencing..."
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-text-color1 focus:outline-none focus:border-primary-color resize-none"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => setShowReportModal(false)}
+                    className="flex-1 py-2.5 rounded-lg border border-gray-200 text-text-color3 text-sm font-medium hover:bg-gray-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleReportSubmit}
+                    disabled={reportSubmitting || !reportForm.type || !reportForm.description}
+                    className="flex-1 py-2.5 rounded-lg bg-primary-color text-white text-sm font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {reportSubmitting ? "Submitting..." : "Submit"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default FAQS;
+export default HelpCenter;

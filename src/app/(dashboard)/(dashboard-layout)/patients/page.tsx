@@ -267,19 +267,42 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AllPatients } from "@/types/dashboard";
 import Container from "@/components/shared/container";
 import DataTable from "@/components/shared/data-table";
 import { Typography } from "@/components/shared/typography";
 import { allPatients, consultation } from "@/data";
 import { Icon } from "@iconify/react";
-// import DateRangePicker from "react-date-range/dist/components/DateRangePicker"; // optional (only if you use one)
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import { Button } from "@/components/shared/button";
+import { getDoctorPatients } from "@/api/service/patient-records";
 
 const PatientsPage = () => {
+  const [apiPatients, setApiPatients] = useState<any[]>([]);
+  const [apiLoading, setApiLoading] = useState(true);
+
+  useEffect(() => {
+    getDoctorPatients()
+      .then((data) => setApiPatients(Array.isArray(data) ? data : []))
+      .catch(() => setApiPatients([]))
+      .finally(() => setApiLoading(false));
+  }, []);
+
+  // Map API patients to local format for table
+  const mappedRows = apiPatients.map((p, i) => ({
+    id: String(i + 1),
+    name: p.name || "Unknown",
+    phone: p.phone || "—",
+    email: p.email || "—",
+    verification: "Verified",
+    date: p.lastConsultationDate ? new Date(p.lastConsultationDate).toLocaleDateString("fr-FR") : "—",
+    patientId: p.patientId,
+  }));
+
+  const tableData = apiLoading || mappedRows.length === 0 ? allPatients?.RowsData : mappedRows;
+
   const [filteredPatientData, setFilteredPatientData] = useState(
     allPatients?.RowsData,
   );

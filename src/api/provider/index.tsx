@@ -26,4 +26,4 @@ const ReactQueryProvider: React.FC<ReactQueryProviderProps> = ({
   );
 };
 
-export 
+export default ReactQueryProvider;

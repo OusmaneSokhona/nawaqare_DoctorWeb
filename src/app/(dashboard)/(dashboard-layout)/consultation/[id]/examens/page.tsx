@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Typography } from "@/components/shared/typography";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { getExamOrders, createExamOrder, updateExamOrderStatus } from "@/api/service/clinical";
 
 interface ExamOrder {
   id: string;
@@ -18,12 +19,42 @@ const ExamOrdersPage = ({ params }: { params: { id: string } }) => {
   const consultationId = params.id;
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState<"labs" | "imaging">("labs");
+  const [apiOrders, setApiOrders] = useState<any[]>([]);
+  const [apiLoading, setApiLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     type: "Blood test",
     description: "",
     priority: "Routine" as const,
     notes: "",
   });
+
+  useEffect(() => {
+    getExamOrders(consultationId)
+      .then((data) => setApiOrders(Array.isArray(data) ? data : []))
+      .catch(() => setApiOrders([]))
+      .finally(() => setApiLoading(false));
+  }, [consultationId]);
+
+  const handleCreateOrder = async () => {
+    try {
+      setSaving(true);
+      await createExamOrder(consultationId, {
+        type: formData.type,
+        description: formData.description,
+        priority: formData.priority,
+        notes: formData.notes,
+      });
+      const updated = await getExamOrders(consultationId);
+      setApiOrders(Array.isArray(updated) ? updated : []);
+      setShowForm(false);
+      setFormData({ type: "Blood test", description: "", priority: "Routine", notes: "" });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const mockOrders: ExamOrder[] = [
     {
@@ -297,4 +328,3 @@ const ExamOrdersPage = ({ params }: { params: { id: string } }) => {
 };
 
 export default ExamOrdersPage;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    

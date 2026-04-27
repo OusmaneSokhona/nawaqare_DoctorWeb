@@ -2,33 +2,45 @@
 import { Typography } from "@/components/shared/typography";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
-import React, { act } from "react";
+import React, { useEffect, useState } from "react";
 import DoctorDashboard from "./upcoming/index";
 import { useRouter } from "next/navigation";
 import { quickActions } from "@/data";
+import { getDoctorDashboardStats } from "@/api/service/dashboard";
+import { DashboardStats } from "@/api/api-types";
 
 const Home = () => {
   const router = useRouter();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getDoctorDashboardStats()
+      .then(setStats)
+      .catch(() => setStats(null))
+      .finally(() => setLoading(false));
+  }, []);
+
   const quickStats = [
     {
       icon: "streamline:waiting-appointments-calendar-remix",
       label: "Today’s appointments",
-      value: "05",
+      value: loading ? "—" : String(stats?.today_appointments ?? 0),
     },
     {
       icon: "fluent:chat-12-regular",
-      label: "Unread messages",
-      value: "05",
+      label: "Total patients",
+      value: loading ? "—" : String(stats?.total_patients ?? 0),
     },
     {
-      icon: "material-symbols:star-outline",
-      label: "Pending reviews",
-      value: "4.3/5",
+      icon: "mdi:clock-outline",
+      label: "Pending bookings",
+      value: loading ? "—" : String(stats?.pending_bookings ?? 0),
     },
     {
-      icon: "material-symbols:star-outline",
-      label: "Pending prescription",
-      value: "05",
+      icon: "mdi:check-circle-outline",
+      label: "Completed consultations",
+      value: loading ? "—" : String(stats?.completed_consultations ?? 0),
     },
   ];
 

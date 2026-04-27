@@ -1,13 +1,14 @@
 "use client";
 import { Button } from "@/components/shared/button";
 import { Typography } from "@/components/shared/typography";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import StatCards from "@/components/shared/stats/stat-card";
 import PatientEngagement from "@/components/shared/stats/patient-engagement";
 import Dashboard from "./chart";
 import PatientPie from "@/components/shared/stats/patient-pie";
 import StaticCharts from "./chart";
 import ConsultationsChart from "@/components/shared/statics-chart";
+import { getDoctorStatistics } from "@/api/service/dashboard";
 
 const operationalCardData = [
   {
@@ -48,6 +49,29 @@ const operationalCardData = [
 ];
 
 const Stats = () => {
+  const [apiStats, setApiStats] = useState<any>(null);
+
+  useEffect(() => {
+    getDoctorStatistics()
+      .then((data: any) => {
+        if (data) setApiStats(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Extract values from API or fall back to defaults
+  const avgDuration = apiStats?.avg_consultation_duration_minutes
+    ? `${Math.floor(apiStats.avg_consultation_duration_minutes)}m ${Math.round((apiStats.avg_consultation_duration_minutes % 1) * 60)}s`
+    : "23m 56s";
+  const writeUpTime = apiStats?.avg_writeup_time_minutes
+    ? `${Math.floor(apiStats.avg_writeup_time_minutes)}m ${Math.round((apiStats.avg_writeup_time_minutes % 1) * 60)}s`
+    : "7min 42s";
+  const cancellationRate = apiStats?.cancellation_rate
+    ? `${apiStats.cancellation_rate.toFixed(1)}%`
+    : "5.8%";
+  const scheduledCount = apiStats?.scheduled_count ?? 174;
+  const completedCount = apiStats?.completed_count ?? 174;
+
   return (
     <div>
       {/* Header */}
@@ -104,7 +128,7 @@ const Stats = () => {
                     as={"h4"}
                     className="text-2xl font-black text-gray-800 mb-1"
                   >
-                    23m 56 s
+                    {avgDuration}
                   </Typography>
                   <Typography className="text-sm text-gray-400 font-medium">
                     Average per consultation
@@ -119,7 +143,7 @@ const Stats = () => {
                     as={"h4"}
                     className="text-2xl font-black text-gray-800 mb-1"
                   >
-                    7min 42s
+                    {writeUpTime}
                   </Typography>
                   <Typography className="text-sm text-gray-400 font-medium">
                     Record completion after consult
@@ -143,7 +167,7 @@ const Stats = () => {
                     as={"h4"}
                     className="text-2xl font-black text-gray-800 mb-1"
                   >
-                    5.8%
+                    {cancellationRate}
                   </Typography>
                   <Typography className="text-sm text-gray-400 font-medium">
                     Cancelled within 24 hour
@@ -158,7 +182,7 @@ const Stats = () => {
                     as={"h4"}
                     className="text-2xl font-black text-gray-800 mb-1"
                   >
-                    174
+                    {scheduledCount}
                   </Typography>
                   <Typography className="text-sm text-gray-400 font-medium">
                     Confirmed Consultation
@@ -173,7 +197,7 @@ const Stats = () => {
                     as={"h4"}
                     className="text-2xl font-black text-gray-800 mb-1"
                   >
-                    174
+                    {completedCount}
                   </Typography>
                   <Typography className="text-sm text-gray-400 font-medium">
                     Completed Consultation

@@ -155,3 +155,14 @@ const QuickPatientSummary: React.FC<QuickSummaryProps> = ({ patientId }) => {
               {patient.alerts.map((alert, idx) => (
                 <li key={idx} className="text-xs text-black ml-5 list-disc">
                   {alert}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default QuickPatientSummary;
