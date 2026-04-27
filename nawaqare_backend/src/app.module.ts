@@ -18,6 +18,9 @@ import { VaccinationsModule } from './modules/notifications/vaccinations.module'
 import { TeamModule } from './modules/teams/team.module';
 import { ComplianceModule } from './modules/compliance/compliance.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
+import { AccessControlModule } from './modules/access-control/access-control.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -40,6 +43,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     TeamModule,
     ComplianceModule,
     NotificationsModule,
+    PharmacyModule,
+    AccessControlModule,
+    AdminModule,
   ],
 })
 export class AppModule {}
