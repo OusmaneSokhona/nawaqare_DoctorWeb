@@ -5,9 +5,17 @@ import { PrismaService } from '@/prisma/prisma.service';
 export class BookingsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getBookingsForDoctor(doctorId: string) {
+  /** `userId` = JWT subject (User.id). Bookings store Doctor.id in `doctor_id`. */
+  async getBookingsForDoctor(userId: string) {
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { user_id: userId },
+      select: { id: true },
+    });
+    if (!doctor) {
+      return [];
+    }
     return this.prisma.booking.findMany({
-      where: { doctor_id: doctorId },
+      where: { doctor_id: doctor.id },
       include: {
         time_slot: true,
       },

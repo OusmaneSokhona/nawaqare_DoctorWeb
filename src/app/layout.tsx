@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import { ToastContainer } from "react-toastify";
 
 import ReactQueryProvider from "@/api/provider";
+import AuthAxiosBootstrap from "@/components/auth-axios-bootstrap";
 import ParentLayout from "@/components/layouts/parent-layout";
 import StateProvider from "@/redux/state-provider";
 import Loading from "./loading";
@@ -35,6 +36,7 @@ export default function RootLayout({
       </head>
       <body className={`${plusJakarta.className} max-w-[2000px] mx-auto`}>
         <StateProvider>
+          <AuthAxiosBootstrap />
           <Suspense fallback={<Loading />}>
             <ReactQueryProvider>
               <ParentLayout>{children}</ParentLayout>

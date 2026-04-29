@@ -1,7 +1,7 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { AuditAction, PrescriptionStatus } from '@prisma/client';
-import { PharmacyDispenseDto, PharmacyRejectDto, PharmacySubstitutionDto, UpdatePharmacyProfileDto, DispenseLine } from './dto/pharmacy-dispense.dto';
+import { PharmacyDispenseDto, PharmacyRejectDto, PharmacySubstitutionDto, UpdatePharmacyProfileDto } from './dto/pharmacy-dispense.dto';
 
 @Injectable()
 export class PharmacyService {
@@ -572,7 +572,7 @@ export class PharmacyService {
   /**
    * Récupère l'historique des délivrances de cette pharmacie
    */
-  async getPharmacyHistory(pharmacyUserId: string, limit: number = 50) {
+  async getPharmacyHistory(_pharmacyUserId: string, limit: number = 50) {
     const prescriptions = await this.prisma.prescription.findMany({
       where: {
         status: { in: [PrescriptionStatus.DELIVERED, PrescriptionStatus.PARTIAL] },

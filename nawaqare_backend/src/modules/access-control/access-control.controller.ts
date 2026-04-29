@@ -1,6 +1,11 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
-import { AccessControlService } from './access-control.service';
+import {
+  AccessControlService,
+  type AccessHistoryEntry,
+  type AccessLevel,
+  type AuthorizedActor,
+} from './access-control.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -26,7 +31,7 @@ export class AccessControlController {
   @Roles('PATIENT')
   @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Get list of people/systems with access to my data' })
-  async getAuthorizedActors(@CurrentUser() currentUser: CurrentUserDto) {
+  async getAuthorizedActors(@CurrentUser() currentUser: CurrentUserDto): Promise<AuthorizedActor[]> {
     return this.accessControlService.getAuthorizedActors(currentUser.id);
   }
 
@@ -43,7 +48,7 @@ export class AccessControlController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
     @Query('action') action?: AuditAction,
-  ) {
+  ): Promise<AccessHistoryEntry[]> {
     return this.accessControlService.getAccessHistory(currentUser.id, {
       limit: limit ? parseInt(limit) : undefined,
       offset: offset ? parseInt(offset) : undefined,
@@ -127,7 +132,7 @@ export class AccessControlController {
   async checkMyAccess(
     @CurrentUser() currentUser: CurrentUserDto,
     @Param('patientId') patientId: string,
-  ) {
+  ): Promise<AccessLevel> {
     return this.accessControlService.checkMyAccess(currentUser.id, patientId);
   }
 
