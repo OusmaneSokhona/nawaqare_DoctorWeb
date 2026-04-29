@@ -1,9 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import { CreateAccessRequestDto, EmergencyAccessDto, UpdateConsentDto, AccessType } from './dto/access-request.dto';
-import { AuditAction, ConsentType } from '@prisma/client';
+import { CreateAccessRequestDto, EmergencyAccessDto, UpdateConsentDto } from './dto/access-request.dto';
+import { AuditAction, ConsentType, Prisma } from '@prisma/client';
 
-interface AuthorizedActor {
+function auditDetailsObject(details: Prisma.JsonValue | null | undefined): Record<string, unknown> {
+  if (details == null || typeof details !== 'object' || Array.isArray(details)) {
+    return {};
+  }
+  return details as Record<string, unknown>;
+}
+
+export interface AuthorizedActor {
   id: string;
   name: string;
   email: string;
@@ -14,7 +21,7 @@ interface AuthorizedActor {
   scope: string[];
 }
 
-interface AccessHistoryEntry {
+export interface AccessHistoryEntry {
   id: string;
   timestamp: Date;
   action: string;
@@ -30,7 +37,7 @@ interface AccessHistoryEntry {
   isEmergency?: boolean;
 }
 
-interface AccessLevel {
+export interface AccessLevel {
   level: 'NONE' | 'READ' | 'READ_WRITE' | 'EMERGENCY';
   grantedAt?: Date;
   expiresAt?: Date;
@@ -85,8 +92,10 @@ export class AccessControlService {
 
     auditLogs.forEach((log) => {
       if (!actorsMap.has(log.actor_uuid)) {
-        const consentType = consents.find((c) =>
-          [ConsentType.MEDICAL_RECORD_ACCESS, ConsentType.DATA_PROCESSING].includes(c.consent_type),
+        const consentType = consents.find(
+          (c) =>
+            c.consent_type === ConsentType.MEDICAL_RECORD_ACCESS ||
+            c.consent_type === ConsentType.DATA_PROCESSING,
         );
 
         actorsMap.set(log.actor_uuid, {
@@ -142,8 +151,8 @@ export class AccessControlService {
       },
       resourceType: log.resource_type,
       details: log.details || {},
-      ipAddress: log.ip_address,
-      userAgent: log.user_agent,
+      ipAddress: log.ip_address ?? undefined,
+      userAgent: log.user_agent ?? undefined,
       isEmergency: log.action === AuditAction.EMERGENCY_ACCESS,
     }));
   }
@@ -317,16 +326,19 @@ export class AccessControlService {
       orderBy: { created_at: 'desc' },
     });
 
-    return auditLogs.map((log) => ({
-      id: log.id,
-      patientId: log.target_uuid,
-      accessType: log.details?.accessType,
-      scope: log.details?.scope || [],
-      reason: log.details?.reason,
-      duration: log.details?.duration,
-      status: log.details?.status || 'PENDING',
-      requestedAt: log.created_at,
-    }));
+    return auditLogs.map((log) => {
+      const d = auditDetailsObject(log.details);
+      return {
+        id: log.id,
+        patientId: log.target_uuid,
+        accessType: d['accessType'],
+        scope: (Array.isArray(d['scope']) ? d['scope'] : []) as string[],
+        reason: d['reason'],
+        duration: d['duration'],
+        status: (d['status'] as string) || 'PENDING',
+        requestedAt: log.created_at,
+      };
+    });
   }
 
   async checkMyAccess(doctorId: string, patientId: string): Promise<AccessLevel> {
@@ -379,10 +391,12 @@ export class AccessControlService {
 
     const accessLevel = recentAccess.action === AuditAction.WRITE ? 'READ_WRITE' : 'READ';
 
+    const d = auditDetailsObject(recentAccess.details);
+    const scopeRaw = d['scope'];
     return {
       level: accessLevel as 'READ' | 'READ_WRITE',
       grantedAt: consent.granted_at || new Date(),
-      scope: recentAccess.details?.scope || [],
+      scope: (Array.isArray(scopeRaw) ? scopeRaw : []) as string[],
     };
   }
 
