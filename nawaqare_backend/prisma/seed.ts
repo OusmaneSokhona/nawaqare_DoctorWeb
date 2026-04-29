@@ -13,19 +13,26 @@ import {
   PrescriptionStatus,
 } from '@prisma/client';
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
+
+/** Mot de passe des comptes seed (overridable via SEED_TEST_PASSWORD) — utiliser login-password */
+const SEED_PLAIN_PASSWORD = process.env.SEED_TEST_PASSWORD ?? 'TestNawaqare2024!';
 
 async function main() {
   console.log('🌱 Seeding NawaQare database...\n');
 
+  const password_hash = await bcrypt.hash(SEED_PLAIN_PASSWORD, 10);
+
   // ─── 1. Créer un médecin de test ─────────────────────────────────────────
   const doctorUser = await prisma.user.upsert({
     where: { phone: '+221771000001' },
-    update: {},
+    update: { password_hash },
     create: {
       phone: '+221771000001',
       email: 'dr.diallo@nawaqare.sn',
+      password_hash,
       role: UserRole.DOCTOR,
       is_active: true,
       profile: {
@@ -59,10 +66,11 @@ async function main() {
   // ─── 2. Créer un médecin spécialiste ─────────────────────────────────────
   const specialistUser = await prisma.user.upsert({
     where: { phone: '+221771000002' },
-    update: {},
+    update: { password_hash },
     create: {
       phone: '+221771000002',
       email: 'dr.ndiaye@nawaqare.sn',
+      password_hash,
       role: UserRole.DOCTOR,
       is_active: true,
       profile: {
@@ -95,10 +103,11 @@ async function main() {
   // ─── 3. Créer un patient de test ──────────────────────────────────────────
   const patientUser = await prisma.user.upsert({
     where: { phone: '+221701000001' },
-    update: {},
+    update: { password_hash },
     create: {
       phone: '+221701000001',
       email: 'patient.test@nawaqare.sn',
+      password_hash,
       role: UserRole.PATIENT,
       is_active: true,
       profile: {
@@ -173,10 +182,11 @@ async function main() {
   // ─── 6. Créer un admin ────────────────────────────────────────────────────
   await prisma.user.upsert({
     where: { phone: '+221700000000' },
-    update: {},
+    update: { password_hash },
     create: {
       phone: '+221700000000',
       email: 'admin@nawaqare.sn',
+      password_hash,
       role: UserRole.ADMIN,
       is_active: true,
       profile: {
@@ -198,10 +208,11 @@ async function main() {
   // ─── A. Pharmacie de test ─────────────────────────────────────────────────
   const pharmacyUser = await prisma.user.upsert({
     where: { phone: '+221338200001' },
-    update: {},
+    update: { password_hash },
     create: {
       phone: '+221338200001',
       email: 'pharmacie.plateau@nawaqare.sn',
+      password_hash,
       role: UserRole.PHARMACIST,
       is_active: true,
       profile: {
@@ -233,10 +244,11 @@ async function main() {
   // UserRole ne contient pas SUPER_ADMIN — on utilise ADMIN
   await prisma.user.upsert({
     where: { phone: '+221700000001' },
-    update: {},
+    update: { password_hash },
     create: {
       phone: '+221700000001',
       email: 'superadmin@nawaqare.sn',
+      password_hash,
       role: UserRole.ADMIN,
       is_active: true,
       profile: {
@@ -445,7 +457,9 @@ async function main() {
   console.log('   Admin:       +221700000000');
   console.log('   Pharmacie:   +221338200001 (Pharmacie Plateau)');
   console.log('   Super Admin: +221700000001');
-  console.log('\n   Flux de connexion: POST /api/v1/auth/login → OTP → POST /api/v1/auth/verify-login-otp');
+  console.log(`\n   Mot de passe (tous les comptes seed): ${SEED_PLAIN_PASSWORD}`);
+  console.log('   Web / API: POST /api/v1/auth/login-password { "identifier": "<email ou +221...>", "password": "..." }');
+  console.log('\n   Flux mobile (OTP): POST /api/v1/auth/login → OTP → POST /api/v1/auth/verify-login-otp');
 }
 
 main()

@@ -183,7 +183,7 @@ export class PharmacyController {
   @Roles('PHARMACIST')
   @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Get dispensing history for this pharmacy' })
-  @ApiQuery({ name: 'limit', required: false, default: 50, description: 'Limit results' })
+  @ApiQuery({ name: 'limit', required: false, schema: { type: 'integer', default: 50 }, description: 'Limit results' })
   async getPharmacyHistory(
     @CurrentUser() user: CurrentUserDto,
     @Query('limit') limit?: string,
@@ -203,7 +203,7 @@ export class PharmacyController {
   @Roles('PHARMACIST')
   @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Get audit log of this pharmacy access to prescriptions' })
-  @ApiQuery({ name: 'limit', required: false, default: 100, description: 'Limit results' })
+  @ApiQuery({ name: 'limit', required: false, schema: { type: 'integer', default: 100 }, description: 'Limit results' })
   async getAccessLog(
     @CurrentUser() user: CurrentUserDto,
     @Query('limit') limit?: string,

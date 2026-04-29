@@ -29,10 +29,54 @@ export interface UserProfile {
   };
 }
 
+export interface LoginPasswordPayload {
+  identifier: string;
+  password: string;
+}
+
+export interface LoginPasswordResponse {
+  message: string;
+  access_token: string;
+  refresh_token: string;
+  user: UserProfile;
+}
+
+/** Connexion par email ou téléphone + mot de passe (comptes seed : voir backend prisma/seed) */
+export const loginWithPassword = async (
+  payload: LoginPasswordPayload,
+): Promise<LoginPasswordResponse> => {
+  const response = await axiosClient.post("/api/v1/auth/login-password", {
+    identifier: payload.identifier.trim(),
+    password: payload.password,
+  });
+  const raw = response.data as { data?: LoginPasswordResponse } | LoginPasswordResponse;
+  const parsed =
+    raw && typeof raw === "object" && "data" in raw && raw.data
+      ? raw.data
+      : (raw as LoginPasswordResponse);
+  if (
+    !parsed?.access_token ||
+    typeof parsed.access_token !== "string" ||
+    parsed.access_token.split(".").length < 3
+  ) {
+    throw new Error("Réponse de connexion invalide (token manquant)");
+  }
+  return parsed;
+};
+
 // Get current user profile
 export const getMe = async (): Promise<UserProfile> => {
   const response = await axiosClient.get("/api/v1/auth/me");
-  return response.data?.user ?? response.data?.data ?? response.data;
+  const raw = response.data as { data?: { user?: UserProfile } } | { user?: UserProfile };
+  const envelope = raw && typeof raw === "object" && "data" in raw && raw.data ? raw.data : raw;
+  const user = (envelope as { user?: UserProfile })?.user;
+  if (user && typeof user === "object" && "id" in user) {
+    return user as UserProfile;
+  }
+  if (envelope && typeof envelope === "object" && "id" in envelope) {
+    return envelope as UserProfile;
+  }
+  throw new Error("Profil utilisateur introuvable dans la réponse");
 };
 
 // Update user profile

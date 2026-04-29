@@ -1358,6 +1358,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useFormik } from "formik";
+import { toast } from "react-toastify";
 import { Typography } from "@/components/shared/typography";
 import InputTextField from "@/components/shared/input-fields/input-text-field";
 import InputPasswordField from "@/components/shared/input-fields/input-password-field";
@@ -1366,10 +1367,12 @@ import { Button } from "@/components/shared/button";
 import { logInitialValues } from "@/formik/initial-values/auth";
 import { logInForm } from "@/formik/forms/auth";
 import { getError } from "@/utils/form-helpers";
-import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
 import EmailVerificationModal from "@/components/shared/email";
 import ForgotPasswordModal from "@/components/shared/forget-model";
+import { loginWithPassword } from "@/api/service/auth";
+import { setAuthBearer } from "@/api/base";
+import { isAxiosError } from "axios";
 
 const steps = [
   "Personal Info",
@@ -1384,6 +1387,7 @@ export default function CreateAccount() {
   const router = useRouter();
   const [openForgot, setOpenForgot] = useState(false);
   const [openEmailOtp, setOpenEmailOtp] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
 
   const { email, Password } = logInForm.formFields;
 
@@ -1424,7 +1428,7 @@ export default function CreateAccount() {
   const isStepZeroValid = isValid && dirty && progress === 100;
   const canContinue = step === 0 ? isStepZeroValid : true;
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!canContinue) {
       setTouched({
         email: true,
@@ -1433,7 +1437,28 @@ export default function CreateAccount() {
       return;
     }
 
-    router.push("/dashboard");
+    setSigningIn(true);
+    try {
+      const res = await loginWithPassword({
+        identifier: values.email,
+        password: values.Password,
+      });
+      if (typeof window !== "undefined") {
+        localStorage.setItem("access_token", res.access_token);
+        localStorage.setItem("refresh_token", res.refresh_token);
+        setAuthBearer(res.access_token);
+        toast.success("Connexion réussie");
+        window.location.href = "/dashboard";
+      }
+    } catch (e: unknown) {
+      const msg = isAxiosError(e)
+        ? (e.response?.data as { error?: { message?: string } })?.error
+            ?.message
+        : null;
+      toast.error(msg || "Identifiants invalides ou serveur indisponible");
+    } finally {
+      setSigningIn(false);
+    }
   };
 
   return (
@@ -1543,13 +1568,17 @@ export default function CreateAccount() {
         <div className="pt-12">
           <Button
             type="button"
-            disabled={!canContinue}
+            disabled={!canContinue || signingIn}
             onClick={handleContinue}
             className={`!py-4 rounded-lg w-full text-white
-              ${canContinue ? "bg-primary-color" : "bg-gray-300 cursor-not-allowed"}
+              ${
+                canContinue && !signingIn
+                  ? "bg-primary-color"
+                  : "bg-gray-300 cursor-not-allowed"
+              }
             `}
           >
-            Sign In
+            {signingIn ? "Connexion…" : "Sign In"}
           </Button>
         </div>
         <Typography className="text-desc-color font-medium mt-2 text-center">

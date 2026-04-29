@@ -15,10 +15,22 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getDoctorDashboardStats()
-      .then(setStats)
-      .catch(() => setStats(null))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const s = await getDoctorDashboardStats();
+        if (!cancelled) setStats(s);
+      } catch {
+        if (!cancelled) setStats(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const quickStats = [

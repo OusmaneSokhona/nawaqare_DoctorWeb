@@ -1,4 +1,13 @@
 // Add types for api functions (Request & Response) here...
+
+/** GET /api/v1/doctors/dashboard/stats */
+export interface DashboardStats {
+  today_appointments: number;
+  total_patients: number;
+  pending_bookings: number;
+  completed_consultations: number;
+}
+
 export type Country = {
   name: string;
   code: string;

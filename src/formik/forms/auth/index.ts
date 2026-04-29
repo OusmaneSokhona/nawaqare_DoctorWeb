@@ -119,8 +119,8 @@ export const logInForm = {
     email: {
       type: "email",
       name: "email",
-      label: "Email address",
-      placeholder: "Enter your email",
+      label: "Email or phone",
+      placeholder: "name@example.com or +221771000001",
       errMsgs: {
         required: "Email Address is required.",
         inValid: "Email must be valid.",

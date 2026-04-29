@@ -21,12 +21,14 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
 import { AccessControlModule } from './modules/access-control/access-control.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ ttl: 60, limit: 60 }]),
     ScheduleModule.forRoot(),
+    HealthModule,
     PrismaModule,
     RedisModule,
     AuthModule,

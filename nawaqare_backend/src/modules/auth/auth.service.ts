@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '@/prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { LoginPasswordDto } from './dto/login-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 @Injectable()
@@ -176,6 +177,78 @@ export class AuthService {
       registration_id: registrationId,
       message: 'OTP sent to phone',
     };
+  }
+
+  async loginWithPassword(dto: LoginPasswordDto) {
+    const user = await this.findUserByIdentifier(dto.identifier);
+    if (!user || !user.password_hash) {
+      throw new UnauthorizedException('Invalid email, phone, or password');
+    }
+
+    const match = await bcrypt.compare(dto.password, user.password_hash);
+    if (!match) {
+      throw new UnauthorizedException('Invalid email, phone, or password');
+    }
+
+    if (!user.is_active) {
+      throw new UnauthorizedException('User account is inactive');
+    }
+
+    const fullUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      include: { profile: true },
+    });
+    if (!fullUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const tokens = await this.generateTokens(fullUser.id, fullUser.phone, fullUser.role);
+
+    return {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      user: {
+        id: fullUser.id,
+        phone: fullUser.phone,
+        role: fullUser.role,
+        profile: fullUser.profile,
+      },
+    };
+  }
+
+  private async findUserByIdentifier(identifier: string) {
+    const raw = identifier.trim();
+    if (!raw) {
+      return null;
+    }
+
+    if (raw.includes('@')) {
+      return this.prisma.user.findFirst({
+        where: { email: { equals: raw, mode: 'insensitive' } },
+      });
+    }
+
+    const phone = this.normalizePhone(raw);
+    return this.prisma.user.findUnique({
+      where: { phone },
+    });
+  }
+
+  private normalizePhone(input: string): string {
+    let p = input.replace(/\s/g, '');
+    if (p.startsWith('+')) {
+      return p;
+    }
+    if (p.startsWith('221')) {
+      return `+${p}`;
+    }
+    if (/^7\d{8}$/.test(p)) {
+      return `+221${p}`;
+    }
+    if (/^\d+$/.test(p)) {
+      return `+${p}`;
+    }
+    return p;
   }
 
   async refreshToken(refreshToken: string) {
