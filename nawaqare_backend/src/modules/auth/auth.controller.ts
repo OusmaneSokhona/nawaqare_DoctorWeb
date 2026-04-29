@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagg
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { LoginPasswordDto } from './dto/login-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -46,6 +47,18 @@ export class AuthController {
     return {
       message: 'OTP sent to your phone',
       registration_id: result.registration_id,
+    };
+  }
+
+  @Post('login-password')
+  @ApiOperation({ summary: 'Login with email or phone + password (doctor web / dev)' })
+  @ApiResponse({ status: 200, description: 'Login successful, tokens returned' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  async loginWithPassword(@Body() dto: LoginPasswordDto) {
+    const result = await this.authService.loginWithPassword(dto);
+    return {
+      message: 'Login successful',
+      ...result,
     };
   }
 

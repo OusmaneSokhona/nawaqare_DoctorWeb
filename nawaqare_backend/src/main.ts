@@ -62,6 +62,7 @@ async function bootstrap() {
       },
       'JWT',
     )
+    .addTag('Health', 'Liveness and readiness')
     .addTag('Auth', 'Authentication endpoints')
     .addTag('Users', 'User management endpoints')
     .addTag('Doctors', 'Doctor profile endpoints')

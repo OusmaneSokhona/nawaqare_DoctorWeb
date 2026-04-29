@@ -144,13 +144,24 @@ export const optSchema = Yup.object({
     .max(6, otp.errMsgs.maxlength),
 });
 
+const phoneLoginRegex = /^\+?2217\d{8}$|^7\d{8}$/;
+
 export const loginSchema = Yup.object({
   [email.name]: Yup.string()
-    .email(email.errMsgs.inValid)
     .trim()
-    .lowercase()
-    .matches(emailRegex, { message: email.errMsgs.inValid })
-    .required(email.errMsgs.required),
+    .required(email.errMsgs.required)
+    .test(
+      "email-or-sn-phone",
+      "Enter a valid email or Senegal phone (e.g. +221771000001)",
+      (value) => {
+        if (!value) return false;
+        const v = value.trim();
+        const lower = v.toLowerCase();
+        if (emailRegex.test(lower)) return true;
+        const compact = v.replace(/\s/g, "");
+        return phoneLoginRegex.test(compact);
+      },
+    ),
   Password: Yup.string()
     .min(8, Password.errMsgs.minlength)
     .required(Password.errMsgs.required),

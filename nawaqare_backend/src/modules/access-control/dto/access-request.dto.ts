@@ -9,11 +9,11 @@ export enum AccessType {
 export class CreateAccessRequestDto {
   @IsString()
   @IsNotEmpty()
-  patientId: string;
+  patientId!: string;
 
   @IsEnum(AccessType)
   @IsNotEmpty()
-  accessType: AccessType;
+  accessType!: AccessType;
 
   @IsArray()
   @IsString({ each: true })
@@ -33,14 +33,14 @@ export class CreateAccessRequestDto {
 export class EmergencyAccessDto {
   @IsString()
   @IsNotEmpty()
-  patientId: string;
+  patientId!: string;
 
   @IsString()
   @IsNotEmpty()
-  justification: string;
+  justification!: string;
 }
 
 export class UpdateConsentDto {
   @IsNotEmpty()
-  granted: boolean;
+  granted!: boolean;
 }

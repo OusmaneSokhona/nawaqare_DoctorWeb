@@ -3,6 +3,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { CreateDoctorProfileDto } from './dto/create-doctor-profile.dto';
 import { UpdateDoctorProfileDto } from './dto/update-doctor-profile.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
+import { BookingStatus } from '@prisma/client';
 
 @Injectable()
 export class DoctorsService {
@@ -136,6 +137,69 @@ export class DoctorsService {
         total_count: total,
         total_pages: Math.ceil(total / (pagination.page_size || 20)),
       },
+    };
+  }
+
+  /**
+   * KPIs pour le dashboard médecin (alignés sur le front: api-types DashboardStats).
+   */
+  async getDashboardStats(userId: string) {
+    const empty = {
+      today_appointments: 0,
+      total_patients: 0,
+      pending_bookings: 0,
+      completed_consultations: 0,
+    };
+
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { user_id: userId },
+    });
+
+    if (!doctor) {
+      return empty;
+    }
+
+    const doctorId = doctor.id;
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const [todayAppointments, pendingBookings, completedConsultations, distinctPatientGroups] =
+      await Promise.all([
+        this.prisma.booking.count({
+          where: {
+            doctor_id: doctorId,
+            status: { not: BookingStatus.CANCELLED },
+            time_slot: {
+              start_time: { gte: startOfDay, lte: endOfDay },
+            },
+          },
+        }),
+        this.prisma.booking.count({
+          where: {
+            doctor_id: doctorId,
+            status: { in: [BookingStatus.CREATED, BookingStatus.CONFIRMED, BookingStatus.RESCHEDULED] },
+          },
+        }),
+        this.prisma.consultation.count({
+          where: {
+            doctor_id: doctorId,
+            OR: [{ ended_at: { not: null } }, { booking: { status: BookingStatus.COMPLETED } }],
+          },
+        }),
+        this.prisma.booking.groupBy({
+          by: ['patient_uuid'],
+          where: { doctor_id: doctorId },
+        }),
+      ]);
+
+    return {
+      today_appointments: todayAppointments,
+      total_patients: distinctPatientGroups.length,
+      pending_bookings: pendingBookings,
+      completed_consultations: completedConsultations,
     };
   }
 

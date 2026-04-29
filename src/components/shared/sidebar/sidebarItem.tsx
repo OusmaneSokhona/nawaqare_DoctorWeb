@@ -11,6 +11,18 @@ import Iconify from "../iconify";
 import { Typography } from "../typography";
 import { useState } from "react";
 
+/** SVG / PNG paths; Iconify keys look like `mdi:home` or `material-symbols:chat-outline`. */
+function isStaticImageSrc(src: string): boolean {
+  return (
+    src.startsWith("/") ||
+    src.startsWith("http://") ||
+    src.startsWith("https://") ||
+    src.endsWith(".svg") ||
+    src.endsWith(".png") ||
+    src.endsWith(".webp")
+  );
+}
+
 export default function SidebarItem({
   icon,
   activeIcon,
@@ -40,6 +52,13 @@ export default function SidebarItem({
     if (isDrawerOpen) dispatch(setIsDrawerOpen(false));
   };
 
+  const displayIcon =
+    !icon
+      ? null
+      : (isActive || isHovered) && activeIcon
+        ? activeIcon
+        : icon;
+
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggle?.();
@@ -58,13 +77,17 @@ export default function SidebarItem({
           ${!subItem && isActive && ""}
         `}
       >
-        {icon ? (
-          <Image
-            src={(isActive || isHovered) && activeIcon ? activeIcon : icon}
-            alt="icon"
-            width={24}
-            height={24}
-          />
+        {displayIcon ? (
+          isStaticImageSrc(displayIcon) ? (
+            <Image src={displayIcon} alt="icon" width={24} height={24} />
+          ) : (
+            <Iconify
+              icon={displayIcon}
+              width={24}
+              height={24}
+              color="currentColor"
+            />
+          )
         ) : (
           <Iconify icon="mdi:dot" width={24} height={24} />
         )}
